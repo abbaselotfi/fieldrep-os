@@ -1,7 +1,8 @@
 # FieldRep OS — Roadmap
 
 **Baseline:** 2026-09-05  
-**Current phase:** P0 — Product & Architecture Foundation
+**Current phase:** P0 — Product & Architecture Foundation  
+**Current work item:** P0-A5 — calendar/location/offline/AI interfaces
 
 ## Product priority
 
@@ -28,36 +29,53 @@ authenticated field user
 
 Goal: define stable boundaries before application scaffolding.
 
-Deliverables:
+### Work items
 
-- Field User specification
-- Excel parity matrix
-- Frontend/PWA UX specification
-- Product vision
-- Requirements inventory
-- Tenant/company/workspace model
-- Role + scoped permission model
-- Domain/data model
-- Calendar/activity model
-- Location/map-provider abstraction
-- Offline/sync model
-- AI recommendation interfaces
-- Security/audit foundation
-- Initial architecture decision records
+```text
+P0-A1  Field User + Excel parity + PWA UX       DONE
+P0-A2  Product vision + requirements             DONE
+P0-A3  Tenancy/workspace/permission model        DONE
+P0-A4  Conceptual domain/data model               DONE
+P0-A5  Calendar/location/offline/AI interfaces    CURRENT
+P0-A6  Architecture review + ADRs                 NEXT
+P1     Application scaffold + authenticated shell
+```
 
-Current documents:
+### Current documents
 
 - `FIELD-USER-SPEC.md`
 - `EXCEL-PARITY-MATRIX.md`
 - `FRONTEND-PWA-UX-SPEC.md`
+- `UI-DESIGN-DIRECTION.md`
+- `PRODUCT-VISION.md`
+- `REQUIREMENTS.md`
+- `TENANCY-MODEL.md`
+- `PERMISSION-MATRIX.md`
+- `DATA-MODEL.md`
+- `ROADMAP.md`
 
-Exit gate:
+### Remaining P0 deliverables
 
-- Company / Workspace / Team terminology is frozen.
+- Calendar/activity interface specification
+- Location/map-provider interface specification
+- Offline/sync interface specification
+- AI recommendation interface specification
+- Security/threat-model baseline
+- Architecture overview
+- Initial architecture decision records
+
+### P0 exit gate
+
+- Company / Workspace / Organization Unit terminology is frozen.
 - Role and scope are separate.
 - Field-user behavior is mapped from Excel.
 - Planner/visit/report entities are independent of UI.
 - Multi-location customers are supported in the domain.
+- Workspace database routing is abstracted.
+- Shared practitioner identity cannot leak workspace operational data.
+- Offline mutation/idempotency boundaries are defined.
+- Maps are provider-independent.
+- AI suggestions are explainable and not autonomous official plans.
 - P1 can begin without known schema-breaking decisions.
 
 ---
@@ -296,17 +314,3 @@ Before phase closure:
 8. No unresolved critical/high defects.
 9. Documentation updated.
 10. Repository clean and closure recorded.
-
----
-
-## Immediate sequence
-
-```text
-P0-A1  Field User + Excel parity + PWA UX     ← current
-P0-A2  Product vision + requirements
-P0-A3  tenancy/workspace/permission model
-P0-A4  domain/data model
-P0-A5  calendar/location/offline/AI interfaces
-P0-A6  architecture review + ADRs
-P1     application scaffold and authenticated shell
-```
