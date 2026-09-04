@@ -1,14 +1,14 @@
 # FieldRep OS — Roadmap
 
 **Baseline:** 2026-09-05  
-**Current phase:** P0 — Product & Architecture Foundation  
-**Current work item:** P0-A5 — calendar/location/offline/AI interfaces
+**P0 status:** COMPLETE — architecture foundation ready for implementation  
+**Next work item:** P1-A0 — repository/tooling scaffold + CI
 
 ## Product priority
 
 The first production-critical surface is the **Field User Workspace**. The current Excel Plan & Report workbook is its functional baseline.
 
-Architecture must anticipate the full SaaS platform from P0, but implementation priority is:
+Architecture anticipates the full SaaS platform, while implementation priority is:
 
 ```text
 authenticated field user
@@ -25,66 +25,85 @@ authenticated field user
 
 ---
 
-## P0 — Product & Architecture Foundation
+## P0 — Product & Architecture Foundation — COMPLETE
 
 Goal: define stable boundaries before application scaffolding.
 
-### Work items
+### Completed work items
 
 ```text
 P0-A1  Field User + Excel parity + PWA UX       DONE
 P0-A2  Product vision + requirements             DONE
 P0-A3  Tenancy/workspace/permission model        DONE
 P0-A4  Conceptual domain/data model               DONE
-P0-A5  Calendar/location/offline/AI interfaces    CURRENT
-P0-A6  Architecture review + ADRs                 NEXT
-P1     Application scaffold + authenticated shell
+P0-A5  Calendar/location/offline/AI interfaces    DONE
+P0-A6  Architecture review + ADRs                 DONE
 ```
 
-### Current documents
+### P0 documents
 
-- `FIELD-USER-SPEC.md`
-- `EXCEL-PARITY-MATRIX.md`
-- `FRONTEND-PWA-UX-SPEC.md`
-- `UI-DESIGN-DIRECTION.md`
-- `PRODUCT-VISION.md`
-- `REQUIREMENTS.md`
-- `TENANCY-MODEL.md`
-- `PERMISSION-MATRIX.md`
-- `DATA-MODEL.md`
-- `ROADMAP.md`
-
-### Remaining P0 deliverables
-
-- Calendar/activity interface specification
-- Location/map-provider interface specification
-- Offline/sync interface specification
-- AI recommendation interface specification
-- Security/threat-model baseline
-- Architecture overview
-- Initial architecture decision records
+```text
+FIELD-USER-SPEC.md
+EXCEL-PARITY-MATRIX.md
+FRONTEND-PWA-UX-SPEC.md
+UI-DESIGN-DIRECTION.md
+PRODUCT-VISION.md
+REQUIREMENTS.md
+TENANCY-MODEL.md
+PERMISSION-MATRIX.md
+DATA-MODEL.md
+CALENDAR-ACTIVITY-SPEC.md
+MAPS-LOCATION-SPEC.md
+OFFLINE-SYNC-SPEC.md
+AI-PLANNER-SPEC.md
+ARCHITECTURE.md
+SECURITY-THREAT-MODEL.md
+P0-ARCHITECTURE-REVIEW.md
+adr/0001-monorepo-and-application-stack.md
+adr/0002-workspace-data-isolation-and-routing.md
+adr/0003-offline-first-field-user-sync.md
+```
 
 ### P0 exit gate
 
-- Company / Workspace / Organization Unit terminology is frozen.
-- Role and scope are separate.
-- Field-user behavior is mapped from Excel.
-- Planner/visit/report entities are independent of UI.
-- Multi-location customers are supported in the domain.
-- Workspace database routing is abstracted.
-- Shared practitioner identity cannot leak workspace operational data.
-- Offline mutation/idempotency boundaries are defined.
-- Maps are provider-independent.
-- AI suggestions are explainable and not autonomous official plans.
-- P1 can begin without known schema-breaking decisions.
+- Company / Workspace / Organization Unit terminology frozen — PASS.
+- Role and scope separated — PASS.
+- Field-user behavior mapped from Excel — PASS for architecture stage.
+- Planner/visit/report independent of UI — PASS.
+- Multi-location customer model — PASS.
+- Workspace database routing abstraction — PASS.
+- Shared practitioner identity isolation — PASS.
+- Offline idempotency/conflict boundaries — PASS.
+- Provider-independent maps — PASS.
+- Explainable/advisory AI boundary — PASS.
+- Security/threat baseline — PASS.
+- P1 can begin without known schema-breaking redesign — PASS.
+
+Implementation-level ADR decisions intentionally deferred are listed in `P0-ARCHITECTURE-REVIEW.md`.
 
 ---
 
-## P1 — Authentication + Field User Shell
+## P1 — Authentication + Field User Shell — NEXT
 
 Goal: create the first real authenticated PWA shell.
 
-Scope:
+### Internal sequence
+
+```text
+P1-A0  Scaffold repo/tooling + CI
+P1-A1  Shared domain/types + workspace context
+P1-A2  Auth/security ADR + session foundation
+P1-A3  Control/workspace DB baseline + data router
+P1-A4  Permission middleware
+P1-A5  Field User responsive shell
+P1-A6  Jalali/RTL design-system foundation
+P1-A7  Home/Calendar/Planner/Customers/Reports/Settings shells
+P1-A8  Representative sample data + responsive visual review
+P1-A9  PWA install/static shell foundation
+P1-A10 P1 test/security gate
+```
+
+### P1 scope
 
 - Login/session
 - Company/workspace context
