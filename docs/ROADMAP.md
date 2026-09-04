@@ -3,7 +3,7 @@
 **Baseline:** 2026-09-05  
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** IN PROGRESS  
-**Current work item:** P1-A3 — Control/workspace DB baseline + data router
+**Current work item:** P1-A7 — Home/Calendar/Planner/Customers/Reports/Settings shells
 
 ## Product priority
 
@@ -94,11 +94,11 @@ Goal: create the first real authenticated PWA shell.
 P1-A0  Scaffold repo/tooling + CI                       DONE
 P1-A1  Shared domain/types + workspace context          DONE
 P1-A2  Auth/security ADR + session foundation           DONE
-P1-A3  Control/workspace DB baseline + data router      CURRENT
-P1-A4  Permission middleware
-P1-A5  Field User responsive shell
-P1-A6  Jalali/RTL design-system foundation
-P1-A7  Home/Calendar/Planner/Customers/Reports/Settings shells
+P1-A3  Control/workspace DB baseline + data router      DONE
+P1-A4  Permission middleware                            DONE
+P1-A5  Field User responsive shell                      DONE
+P1-A6  Jalali/RTL design-system foundation              DONE
+P1-A7  Home/Calendar/Planner/Customers/Reports/Settings shells  CURRENT
 P1-A8  Representative sample data + responsive visual review
 P1-A9  PWA install/static shell foundation
 P1-A10 P1 test/security gate
@@ -114,6 +114,18 @@ P1-A10 P1 test/security gate
 - Email/password starts with Better Auth scrypt hashing; public production self-sign-up is disabled.
 - Server-side database sessions use secure HttpOnly cookies; no long-lived auth token in browser storage.
 - UUID v4 / `crypto.randomUUID()` selected for durable opaque domain IDs and offline-safe creation.
+- Separate Control Plane and Workspace Plane SQL migrations validate on fresh SQLite databases in CI.
+- `WorkspaceDataRouter` resolves logical control-plane routes to bound D1 stores and verifies physical `workspace_identity` before access.
+- Authorization middleware is fail-closed for missing authentication, permissions, and cross-workspace route access.
+- Responsive RTL shell uses a desktop right navigation rail and mobile bottom navigation with a primary quick-action slot.
+- Jalali presentation utilities use timezone-aware `Intl` Persian calendar formatting behind reusable helpers.
+- Semantic design tokens, visible focus states, minimum touch targets, and reduced-motion behavior form the P1 design-system baseline.
+
+### P1 implementation documents
+
+- `DESIGN-SYSTEM.md`
+- `adr/0004-authentication-session-and-identifier-strategy.md`
+- `migrations/README.md`
 
 ### P1 scope
 
