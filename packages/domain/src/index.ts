@@ -11,6 +11,12 @@ export type {
 export type { AuthContext } from './auth-context'
 export { toAuthContext } from './auth-context'
 export type {
+  AuthenticatedWorkspaceResolution,
+  SessionId,
+  SessionIdentity,
+} from './session'
+export { resolveAuthenticatedWorkspace } from './session'
+export type {
   CompanySummary,
   MembershipStatus,
   ScopeGrant,
