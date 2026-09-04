@@ -3,7 +3,7 @@
 **Baseline:** 2026-09-05  
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** IN PROGRESS  
-**Current work item:** P1-A8 — Representative sample data + responsive visual review
+**Current work item:** P1-A9 — PWA install/static shell foundation
 
 ## Product priority
 
@@ -99,8 +99,8 @@ P1-A4  Permission middleware                            DONE
 P1-A5  Field User responsive shell                      DONE
 P1-A6  Jalali/RTL design-system foundation              DONE
 P1-A7  Home/Calendar/Planner/Customers/Reports/Settings shells  DONE
-P1-A8  Representative sample data + responsive visual review    CURRENT
-P1-A9  PWA install/static shell foundation
+P1-A8  Representative sample data + responsive visual review    DONE
+P1-A9  PWA install/static shell foundation                       CURRENT
 P1-A10 P1 test/security gate
 ```
 
@@ -121,11 +121,14 @@ P1-A10 P1 test/security gate
 - Jalali presentation utilities use timezone-aware `Intl` Persian calendar formatting behind reusable helpers.
 - Semantic design tokens, visible focus states, minimum touch targets, and reduced-motion behavior form the P1 design-system baseline.
 - Field User page shells now cover Home, Calendar, Plan & Report, Customers, Reports, Settings, and Visit Report.
-- Planner shell exposes List / Calendar / Excel / Map as views of one future domain model rather than separate workflows.
+- Planner provides working List / Calendar / Excel / Map presentation modes over one representative field dataset.
+- Representative fixtures cover doctors, pharmacy/clinic records, classes, frequencies, routes, multi-location customers, calendar activities, reports and AI-preview reasons without using production/company data.
+- Responsive review keeps the mobile List view primary, preserves a high-density horizontally scrollable Excel view, and defers the real map renderer to the provider adapter phase.
 
 ### P1 implementation documents
 
 - `DESIGN-SYSTEM.md`
+- `P1-A8-RESPONSIVE-VISUAL-REVIEW.md`
 - `adr/0004-authentication-session-and-identifier-strategy.md`
 - `migrations/README.md`
 
