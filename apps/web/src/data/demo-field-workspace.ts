@@ -158,7 +158,7 @@ export const demoTodayPlan: readonly DemoPlanEntry[] = [
 export const demoWeekPlan: readonly DemoWeekDay[] = [
   {
     day: 15,
-    weekday: 'شنبه',
+    weekday: 'یکشنبه',
     route: 'Route 8',
     target: 9,
     customerIds: [
@@ -174,28 +174,28 @@ export const demoWeekPlan: readonly DemoWeekDay[] = [
   },
   {
     day: 16,
-    weekday: 'یکشنبه',
+    weekday: 'دوشنبه',
     route: 'Route 7',
     target: 8,
     customerIds: ['doctor-sara-zamani', 'doctor-pouya-naderi', 'doctor-arman-rezaei', 'doctor-mehdi-sharifi'],
   },
   {
     day: 17,
-    weekday: 'دوشنبه',
+    weekday: 'سه‌شنبه',
     route: 'Route 8',
     target: 9,
     customerIds: ['doctor-nazanin-karimi', 'doctor-mehdi-sharifi', 'pharmacy-sepid', 'clinic-pars', 'doctor-arman-rezaei'],
   },
   {
     day: 18,
-    weekday: 'سه‌شنبه',
+    weekday: 'چهارشنبه',
     route: 'Route 6',
     target: 7,
     customerIds: ['doctor-elham-tavakoli', 'doctor-sara-zamani', 'doctor-pouya-naderi'],
   },
   {
     day: 19,
-    weekday: 'چهارشنبه',
+    weekday: 'پنجشنبه',
     route: 'Route 8',
     target: 8,
     customerIds: ['doctor-arman-rezaei', 'doctor-nazanin-karimi', 'doctor-mehdi-sharifi', 'pharmacy-sepid'],
