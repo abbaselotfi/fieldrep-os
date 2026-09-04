@@ -9,10 +9,11 @@
   "scripts": {
     "dev:web": "pnpm --filter @fieldrep/web dev",
     "dev:worker": "pnpm --filter @fieldrep/worker dev",
+    "validate:migrations": "node scripts/validate-migrations.mjs",
     "typecheck": "tsc -p packages/domain/tsconfig.json --noEmit && tsc -p packages/shared/tsconfig.json --noEmit && tsc -p packages/permissions/tsconfig.json --noEmit && tsc -p packages/database/tsconfig.json --noEmit && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/worker/tsconfig.json --noEmit",
     "test": "vitest run",
     "build": "pnpm --filter @fieldrep/web build && pnpm --filter @fieldrep/worker build",
-    "check": "pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm validate:migrations && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
     "@types/node": "26.4.1",

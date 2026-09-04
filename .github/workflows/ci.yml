@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate SQL migrations
+        run: pnpm validate:migrations
+
       - name: Typecheck
         run: pnpm typecheck
 

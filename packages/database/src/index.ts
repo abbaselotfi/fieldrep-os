@@ -1,10 +1,12 @@
-import type { WorkspaceId } from '@fieldrep/domain'
-
-export interface WorkspaceDataStore {
-  readonly workspaceId: WorkspaceId
-  health(): Promise<boolean>
-}
-
-export interface WorkspaceDataRouter {
-  get(workspaceId: WorkspaceId): Promise<WorkspaceDataStore>
-}
+export type {
+  D1BindingRegistry,
+  D1DatabaseLike,
+  D1PreparedStatementLike,
+  WorkspaceDataRouter,
+  WorkspaceDataStore,
+} from './contracts'
+export {
+  BoundD1WorkspaceDataRouter,
+  WorkspaceDataRouteError,
+  type WorkspaceDataRouteErrorCode,
+} from './d1-router'
