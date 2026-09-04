@@ -3,7 +3,7 @@
 **Baseline:** 2026-09-05  
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** IN PROGRESS  
-**Current work item:** P1-A7 — Home/Calendar/Planner/Customers/Reports/Settings shells
+**Current work item:** P1-A8 — Representative sample data + responsive visual review
 
 ## Product priority
 
@@ -98,8 +98,8 @@ P1-A3  Control/workspace DB baseline + data router      DONE
 P1-A4  Permission middleware                            DONE
 P1-A5  Field User responsive shell                      DONE
 P1-A6  Jalali/RTL design-system foundation              DONE
-P1-A7  Home/Calendar/Planner/Customers/Reports/Settings shells  CURRENT
-P1-A8  Representative sample data + responsive visual review
+P1-A7  Home/Calendar/Planner/Customers/Reports/Settings shells  DONE
+P1-A8  Representative sample data + responsive visual review    CURRENT
 P1-A9  PWA install/static shell foundation
 P1-A10 P1 test/security gate
 ```
@@ -120,6 +120,8 @@ P1-A10 P1 test/security gate
 - Responsive RTL shell uses a desktop right navigation rail and mobile bottom navigation with a primary quick-action slot.
 - Jalali presentation utilities use timezone-aware `Intl` Persian calendar formatting behind reusable helpers.
 - Semantic design tokens, visible focus states, minimum touch targets, and reduced-motion behavior form the P1 design-system baseline.
+- Field User page shells now cover Home, Calendar, Plan & Report, Customers, Reports, Settings, and Visit Report.
+- Planner shell exposes List / Calendar / Excel / Map as views of one future domain model rather than separate workflows.
 
 ### P1 implementation documents
 
