@@ -2,7 +2,8 @@
 
 **Baseline:** 2026-09-05  
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
-**Next work item:** P1-A0 — repository/tooling scaffold + CI
+**P1 status:** IN PROGRESS  
+**Current work item:** P1-A3 — Control/workspace DB baseline + data router
 
 ## Product priority
 
@@ -83,17 +84,17 @@ Implementation-level ADR decisions intentionally deferred are listed in `P0-ARCH
 
 ---
 
-## P1 — Authentication + Field User Shell — NEXT
+## P1 — Authentication + Field User Shell — IN PROGRESS
 
 Goal: create the first real authenticated PWA shell.
 
 ### Internal sequence
 
 ```text
-P1-A0  Scaffold repo/tooling + CI
-P1-A1  Shared domain/types + workspace context
-P1-A2  Auth/security ADR + session foundation
-P1-A3  Control/workspace DB baseline + data router
+P1-A0  Scaffold repo/tooling + CI                       DONE
+P1-A1  Shared domain/types + workspace context          DONE
+P1-A2  Auth/security ADR + session foundation           DONE
+P1-A3  Control/workspace DB baseline + data router      CURRENT
 P1-A4  Permission middleware
 P1-A5  Field User responsive shell
 P1-A6  Jalali/RTL design-system foundation
@@ -102,6 +103,17 @@ P1-A8  Representative sample data + responsive visual review
 P1-A9  PWA install/static shell foundation
 P1-A10 P1 test/security gate
 ```
+
+### P1 completed decisions
+
+- TypeScript/pnpm monorepo scaffolded.
+- React/Vite/Tailwind web shell and Cloudflare Worker/Hono API shell build in CI.
+- Workspace selection and scoped authorization domain types implemented and tested.
+- Authentication framework decision: Better Auth backed by CONTROL_DB/D1.
+- Session identity kept separate from FieldRep OS membership/permission context.
+- Email/password starts with Better Auth scrypt hashing; public production self-sign-up is disabled.
+- Server-side database sessions use secure HttpOnly cookies; no long-lived auth token in browser storage.
+- UUID v4 / `crypto.randomUUID()` selected for durable opaque domain IDs and offline-safe creation.
 
 ### P1 scope
 
