@@ -4,7 +4,7 @@
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** COMPLETE — test/security gate passed  
 **P2 status:** IN PROGRESS  
-**Current work item:** P2-A2 — Doctor/customer + route repositories and APIs
+**Current work item:** P2-A4 — Planner domain engine + duplicate/frequency/target rules
 
 ## Product priority
 
@@ -136,6 +136,7 @@ P1-A10 P1 test/security gate                                     DONE
 - `P1-A8-RESPONSIVE-VISUAL-REVIEW.md`
 - `P1-A9-PWA-SHELL.md`
 - `P1-A10-TEST-SECURITY-GATE.md`
+- `PAGES-PREVIEW.md`
 - `adr/0004-authentication-session-and-identifier-strategy.md`
 - `migrations/README.md`
 
@@ -160,9 +161,9 @@ Goal: allow a field user to replace the current workbook for core planning/repor
 
 ```text
 P2-A1  Executable Excel-parity rules and domain contracts        DONE
-P2-A2  Doctor/customer + route repositories and APIs             CURRENT
-P2-A3  Planning-cycle / Jalali quarter engine
-P2-A4  Planner domain engine + duplicate/frequency/target rules
+P2-A2  Doctor/customer + route repositories and APIs             DONE
+P2-A3  Planning-cycle / Jalali quarter engine                    DONE
+P2-A4  Planner domain engine + duplicate/frequency/target rules  CURRENT
 P2-A5  Plan CRUD wired to List/Calendar/Excel views
 P2-A6  Visit/report actuals + product counters
 P2-A7  Visited/Achievement calculations
@@ -171,7 +172,9 @@ P2-A9  Initial workbook import/migration path
 P2-A10 Excel-parity regression gate
 ```
 
-### P2-A1 completed decisions
+### P2 completed decisions
+
+#### P2-A1
 
 - Planner/visit identifiers and contracts are explicit in the domain layer.
 - Frequency/Achievement semantics are executable and unit tested.
@@ -179,10 +182,32 @@ P2-A10 Excel-parity regression gate
 - Daily-target progress is executable and unit tested.
 - Duplicate detection is scoped to workspace + user + customer.
 - Default duplicate policy treats same-day repetition as an error and adjacent-day repetition as a warning.
-- Canonical planner dates use `YYYY-MM-DD`; Jalali remains a presentation/planning-cycle concern.
-- PWA source/security validation is now part of CI and installable PNG icons are present.
+- Canonical planner dates use `YYYY-MM-DD`.
+- PWA source/security validation is part of CI and installable PNG icons are present.
 
 Implementation record: `P2-A1-EXCEL-PARITY-RULES.md`.
+
+#### P2-A2
+
+- Workspace reference data now models doctors, pharmacies and future customer types without redesign.
+- Company/workspace master customers and user-private customers have distinct record scopes.
+- Doctor specialty/class/frequency, routes and multiple locations are persisted explicitly.
+- Workspace/customer/route/location database constraints fail closed.
+- Customer repositories return workspace data plus only the authenticated user's private records.
+- Customer search/filter values are bound and wildcard-safe.
+- Secured customer/route API modules enforce authentication, permission and active-workspace boundaries.
+
+Implementation record: `P2-A2-CUSTOMER-ROUTE-DATA.md`.
+
+#### P2-A3
+
+- Jalali↔canonical conversion is executable and round-trip validated.
+- Quarter boundaries are calculated from the Persian calendar rather than hard-coded month tables in UI.
+- Known 1405 quarter boundaries and leap Esfand behavior are unit tested.
+- `planning_cycles` supports Jalali quarters and future custom cycles.
+- Only one active planning cycle is allowed per workspace.
+
+Implementation record: `P2-A3-JALALI-PLANNING-CYCLE.md`.
 
 ### P2 scope
 
