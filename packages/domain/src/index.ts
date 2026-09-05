@@ -110,3 +110,19 @@ export {
   summarizeVisitReport,
   visitReportBounds,
 } from './reporting'
+export type {
+  WorkbookExtractedSnapshot,
+  WorkbookImportIssue,
+  WorkbookImportIssueCode,
+  WorkbookImportPreview,
+  WorkbookImportSeverity,
+  WorkbookNormalizedCustomer,
+  WorkbookNormalizedPlan,
+  WorkbookNormalizedProduct,
+  WorkbookNormalizedRoute,
+  WorkbookNormalizedVisit,
+  WorkbookPhysicianRow,
+  WorkbookPlanRow,
+  WorkbookReportRow,
+} from './workbook-import'
+export { previewWorkbookImport } from './workbook-import'

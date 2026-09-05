@@ -29,3 +29,8 @@ export type {
   VisitActualRepository,
 } from './visit-repository'
 export { WorkspaceVisitActualRepository } from './visit-repository'
+export type {
+  PersistedWorkbookImportPreview,
+  PersistWorkbookImportPreviewInput,
+} from './workbook-import-repository'
+export { WorkspaceWorkbookImportRepository } from './workbook-import-repository'
