@@ -57,6 +57,7 @@ assert(serviceWorker.includes("'/icons/app-icon-192.png'"), '192px PNG icon must
 assert(serviceWorker.includes("'/icons/app-icon-512.png'"), '512px PNG icon must be part of the shell cache')
 
 assert(registration.includes('import.meta.env.PROD'), 'service worker registration must remain production-only')
-assert(registration.includes("navigator.serviceWorker.register('/sw.js')"), 'service worker must register from the application root')
+assert(/navigator\.serviceWorker\.register\(\s*['"]\/sw\.js['"]/.test(registration), 'service worker must register from the application root')
+assert(/scope:\s*['"]\/['"]/.test(registration), 'service worker scope must remain the application root')
 
 console.log('PWA security/installability source validation: PASS')
