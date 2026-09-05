@@ -134,9 +134,17 @@ textarea:focus-visible {
 .thin-scrollbar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
 .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
 
-/* Existing P2 pages still use Tailwind's white surface utility. Rebind it to the design-system surface in dark mode. */
-:root[data-theme="dark"] .bg-white { background-color: var(--surface-raised) !important; }
+/* P2 parity pages predate the dark-first shell. These compatibility rules recolor their neutral light surfaces without changing business logic. */
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .bg-white\/90,
+:root[data-theme="dark"] .bg-white\/60 {
+  background-color: var(--surface-raised) !important;
+}
+:root[data-theme="dark"] .border-white\/80 { border-color: var(--border-subtle) !important; }
 :root[data-theme="dark"] .hover\:bg-white:hover { background-color: var(--surface-raised-2) !important; }
+:root[data-theme="dark"] [class*="bg-[linear-gradient(180deg,var(--accent-soft),white)]"] {
+  background-image: linear-gradient(180deg, var(--accent-soft), var(--surface-raised)) !important;
+}
 
 @media (max-width: 1023px) {
   body { background-attachment: scroll; }
