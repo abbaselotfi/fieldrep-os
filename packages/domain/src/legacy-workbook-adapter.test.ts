@@ -4,6 +4,7 @@ import {
   adaptLegacyWorkbookTabular,
   type LegacyWorkbookTabularSnapshot,
 } from './legacy-workbook-adapter'
+import { previewWorkbookImport } from './workbook-import'
 
 function source(
   overrides: Partial<LegacyWorkbookTabularSnapshot> = {},
@@ -73,8 +74,8 @@ function source(
       Report: [
         { rowNumber: 1, cells: [null, null, null, 'شهریور'] },
         { rowNumber: 2, cells: ['تاريخ', 'روز هفته', 'نام پزشک', 'دارو', 'گزارش ويزيت'] },
-        { rowNumber: 3, cells: ['1405/06/14', 'شنبه', 'پزشک یک', 'Toujeo', 'پیگیری'] },
-        { rowNumber: 4, cells: [null, null, 'پزشک دو', 'Soliqua', null] },
+        { rowNumber: 3, cells: ['1405/06/14', 'شنبه', 'پزشک یک A', 'Toujeo', 'پیگیری'] },
+        { rowNumber: 4, cells: [null, null, 'پزشک دو B (0.5)', 'Soliqua', null] },
         { rowNumber: 5, cells: [null, null, 'Route 8', 'Toujeo', null] },
       ],
       Calendar: [
@@ -100,7 +101,7 @@ function source(
         },
         {
           rowNumber: 5,
-          cells: ['پزشک یک', 'پزشک دو', null, null, null, null, null, null, null, null, null, null, null, null],
+          cells: ['پزشک یک A', 'پزشک دو B (0.5)', null, null, null, null, null, null, null, null, null, null, null, null],
         },
         {
           rowNumber: 6,
@@ -114,7 +115,7 @@ function source(
 }
 
 describe('legacy workbook tabular adapter', () => {
-  it('maps the exact legacy physician headers, counters and achievement typo', () => {
+  it('maps exact physician headers while preserving combined-label aliases', () => {
     const result = adaptLegacyWorkbookTabular(source())
 
     expect(result.snapshot.physicianRows).toHaveLength(2)
@@ -122,6 +123,7 @@ describe('legacy workbook tabular adapter', () => {
       expect.objectContaining({
         rowNumber: 2,
         name: 'پزشک یک',
+        legacyAliases: ['پزشک یک A'],
         specialty: 'داخلی',
         classKey: 'A',
         route: 'Route 8',
@@ -132,34 +134,41 @@ describe('legacy workbook tabular adapter', () => {
         productCounters: { Soliqua: 1, Toujeo: 1 },
       }),
     )
-    expect(result.snapshot.physicianRows[1]?.classKey).toBe('B (0.5)')
+    expect(result.snapshot.physicianRows[1]).toEqual(
+      expect.objectContaining({
+        name: 'پزشک دو',
+        legacyAliases: ['پزشک دو B (0.5)'],
+        classKey: 'B (0.5)',
+      }),
+    )
     expect(result.diagnostics).toContain('holiday_sentinel_physician_skipped:row=4')
   })
 
-  it('carries Report dates forward and ignores route marker rows', () => {
+  it('carries Report dates forward, accepts combined aliases and ignores route markers', () => {
     const result = adaptLegacyWorkbookTabular(source())
 
     expect(result.snapshot.reportRows).toEqual([
       expect.objectContaining({
         rowNumber: 3,
         visitDate: '2026-09-05',
-        customerName: 'پزشک یک',
+        customerName: 'پزشک یک A',
         productNames: ['Toujeo'],
         reportText: 'پیگیری',
       }),
       expect.objectContaining({
         rowNumber: 4,
         visitDate: '2026-09-05',
-        customerName: 'پزشک دو',
+        customerName: 'پزشک دو B (0.5)',
         productNames: ['Soliqua'],
       }),
     ])
     expect(result.diagnostics).toContain(
       'report_route_marker_skipped:row=5:value=Route 8',
     )
+    expect(result.diagnostics.some((value) => value.startsWith('report_unknown_customer'))).toBe(false)
   })
 
-  it('maps the verified Calendar pair/session layout with source-cell provenance', () => {
+  it('maps verified Calendar sessions with exact combined labels and source-cell provenance', () => {
     const result = adaptLegacyWorkbookTabular(source())
 
     expect(result.snapshot.planRows).toEqual([
@@ -167,20 +176,41 @@ describe('legacy workbook tabular adapter', () => {
         rowNumber: 5,
         sourceCell: 'A5',
         planDate: '2026-09-05',
-        customerName: 'پزشک یک',
+        customerName: 'پزشک یک A',
         route: 'Route 8',
       },
       {
         rowNumber: 5,
         sourceCell: 'B5',
         planDate: '2026-09-05',
-        customerName: 'پزشک دو',
+        customerName: 'پزشک دو B (0.5)',
         route: 'Route 7',
       },
     ])
     expect(result.diagnostics).toContain('calendar_holiday_sentinel_skipped:cell=A6')
     expect(result.diagnostics).toContain('calendar_layout_verified:week_blocks=1')
     expect(result.diagnostics.some((value) => value.startsWith('calendar_daily_count_mismatch'))).toBe(false)
+  })
+
+  it('resolves Report and Calendar combined labels to canonical physician records', () => {
+    const adapted = adaptLegacyWorkbookTabular(source())
+    const preview = previewWorkbookImport(adapted.snapshot)
+
+    expect(preview.summary).toMatchObject({
+      customers: 2,
+      visits: 2,
+      plans: 2,
+      errors: 0,
+      canApply: true,
+    })
+    expect(preview.visits.map((visit) => visit.customerNaturalKey)).toEqual([
+      'پزشک یک',
+      'پزشک دو',
+    ])
+    expect(preview.plans.map((plan) => plan.customerNaturalKey)).toEqual([
+      'پزشک یک',
+      'پزشک دو',
+    ])
   })
 
   it('converts numeric Excel serial dates to canonical dates', () => {
@@ -190,7 +220,7 @@ describe('legacy workbook tabular adapter', () => {
           ...source().sheets,
           Report: [
             { rowNumber: 1, cells: ['Date', 'Doctor', 'Product', 'Report'] },
-            { rowNumber: 2, cells: [46271, 'پزشک یک', 'Toujeo', 'Excel serial date'] },
+            { rowNumber: 2, cells: [46271, 'پزشک یک A', 'Toujeo', 'Excel serial date'] },
           ],
         },
       }),
