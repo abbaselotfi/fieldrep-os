@@ -42,6 +42,11 @@ export type {
 } from './working-calendar-repository'
 export { WorkspaceWorkingCalendarRepository } from './working-calendar-repository'
 export type {
+  CreateLeaveRequestInput,
+  LeaveRequestRepository,
+} from './leave-repository'
+export { WorkspaceLeaveRequestRepository } from './leave-repository'
+export type {
   PersistedWorkbookImportPreview,
   PersistWorkbookImportPreviewInput,
 } from './workbook-import-repository'
