@@ -36,6 +36,12 @@ export type {
 } from './calendar-activity-repository'
 export { WorkspaceCalendarActivityRepository } from './calendar-activity-repository'
 export type {
+  CreateCalendarOverrideInput,
+  CreateWorkingCalendarRuleInput,
+  WorkingCalendarRepository,
+} from './working-calendar-repository'
+export { WorkspaceWorkingCalendarRepository } from './working-calendar-repository'
+export type {
   PersistedWorkbookImportPreview,
   PersistWorkbookImportPreviewInput,
 } from './workbook-import-repository'
