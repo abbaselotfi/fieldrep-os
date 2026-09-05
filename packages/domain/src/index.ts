@@ -97,6 +97,18 @@ export {
   persianWeekdayIndex,
 } from './persian-calendar'
 export type {
+  OfficialCalendarDataset,
+  OfficialCalendarEvent,
+  OfficialCalendarEventKind,
+  OfficialCalendarSource,
+  OfficialCalendarValidationResult,
+} from './official-calendar'
+export {
+  isOfficialHoliday,
+  officialCalendarEventsOn,
+  validateOfficialCalendarDataset,
+} from './official-calendar'
+export type {
   JalaliDateParts,
   PlanningCycleBounds,
   PlanningCycleSummary,
