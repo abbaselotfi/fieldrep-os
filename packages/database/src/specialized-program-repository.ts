@@ -59,10 +59,8 @@ export class WorkspaceSpecializedProgramRepository implements SpecializedProgram
         values: [program.workspaceId, program.id, userId, now, now],
       })
     }
-
     commands.push(this.calendarInsert(item, now))
     for (const userId of program.attendeeUserIds) commands.push(this.attendeeInsert(item.id, userId, now))
-
     await this.executeAll(commands, 'company_program_create_batch_failed')
   }
 
@@ -115,10 +113,8 @@ export class WorkspaceSpecializedProgramRepository implements SpecializedProgram
         values: [program.workspaceId, program.id, userId, now, now],
       })
     }
-
     commands.push(this.calendarInsert(item, now))
     for (const userId of program.attendeeUserIds) commands.push(this.attendeeInsert(item.id, userId, now))
-
     await this.executeAll(commands, 'doctor_program_create_batch_failed')
   }
 
@@ -137,8 +133,7 @@ export class WorkspaceSpecializedProgramRepository implements SpecializedProgram
     status: ProgramStatus,
   ): Promise<boolean> {
     const now = this.now()
-    const calendarStatus = status === 'scheduled' ? 'scheduled' : status
-    const active = status !== 'cancelled'
+    const active = status === 'scheduled' || status === 'completed'
     const results = await this.store.executeBatch([
       {
         query: `UPDATE ${table} SET status = ?, updated_at = ? WHERE workspace_id = ? AND id = ?`,
@@ -147,12 +142,25 @@ export class WorkspaceSpecializedProgramRepository implements SpecializedProgram
       {
         query: `UPDATE calendar_events
           SET status = ?,
-              blocks_planning = CASE WHEN ? = 'scheduled' THEN blocks_planning ELSE 0 END,
+              blocks_planning = CASE WHEN ? = 'scheduled'
+                THEN COALESCE((SELECT blocks_planning FROM ${table} p WHERE p.workspace_id = ? AND p.id = ?), 0)
+                ELSE 0 END,
+              counts_as_working_activity = CASE WHEN ?
+                THEN COALESCE((SELECT counts_as_working_activity FROM ${table} p WHERE p.workspace_id = ? AND p.id = ?), 0)
+                ELSE 0 END,
               counts_as_visit = 0,
-              appears_in_report = CASE WHEN ? THEN appears_in_report ELSE 0 END,
+              appears_in_report = CASE WHEN ?
+                THEN COALESCE((SELECT appears_in_report FROM ${table} p WHERE p.workspace_id = ? AND p.id = ?), 0)
+                ELSE 0 END,
               updated_at = ?
           WHERE workspace_id = ? AND source_entity_type = ? AND source_entity_id = ?`,
-        values: [calendarStatus, status, active ? 1 : 0, now, this.store.workspaceId, sourceType, id],
+        values: [
+          status,
+          status, this.store.workspaceId, id,
+          active ? 1 : 0, this.store.workspaceId, id,
+          active ? 1 : 0, this.store.workspaceId, id,
+          now, this.store.workspaceId, sourceType, id,
+        ],
       },
     ])
     if (results.some((result) => !result.success)) throw new Error('program_status_batch_failed')
