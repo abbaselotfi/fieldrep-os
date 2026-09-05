@@ -75,6 +75,28 @@ export type {
   RouteSummary,
 } from './customer'
 export type {
+  PersianDateParts,
+  GregorianDateParts,
+  PersianMonthGrid,
+  PersianMonthGridCell,
+  PersianWeekdayIndex,
+} from './persian-calendar'
+export {
+  addCanonicalCalendarDays,
+  buildPersianMonthGrid,
+  canonicalDateToPersian,
+  canonicalWeekdayIndex,
+  FIELDREP_MAX_PERSIAN_YEAR,
+  FIELDREP_MIN_PERSIAN_YEAR,
+  isPersianLeapYear,
+  isValidPersianDate,
+  PERSIAN_WEEKDAY_NAMES,
+  persianDateToCanonical,
+  persianMonthLength,
+  persianWeekBounds,
+  persianWeekdayIndex,
+} from './persian-calendar'
+export type {
   JalaliDateParts,
   PlanningCycleBounds,
   PlanningCycleSummary,
