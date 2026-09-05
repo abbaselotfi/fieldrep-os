@@ -4,7 +4,7 @@
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** COMPLETE — test/security gate passed  
 **P2 status:** IN PROGRESS  
-**Current work item:** P2-A6 — Visit/report actuals + product counters
+**Current work item:** P2-A9 — code complete; exact legacy-workbook compatibility verification pending source XLSM
 
 ## Product priority
 
@@ -37,9 +37,9 @@ Goal: define stable boundaries before application scaffolding.
 P0-A1  Field User + Excel parity + PWA UX       DONE
 P0-A2  Product vision + requirements             DONE
 P0-A3  Tenancy/workspace/permission model        DONE
-P0-A4  Conceptual domain/data model               DONE
-P0-A5  Calendar/location/offline/AI interfaces    DONE
-P0-A6  Architecture review + ADRs                 DONE
+P0-A4  Conceptual domain/data model              DONE
+P0-A5  Calendar/location/offline/AI interfaces   DONE
+P0-A6  Architecture review + ADRs                DONE
 ```
 
 ### P0 documents
@@ -164,11 +164,11 @@ P2-A2  Doctor/customer + route repositories and APIs             DONE
 P2-A3  Planning-cycle / Jalali quarter engine                    DONE
 P2-A4  Planner domain engine + duplicate/frequency/target rules  DONE
 P2-A5  Plan CRUD wired to List/Calendar/Excel views              DONE
-P2-A6  Visit/report actuals + product counters                   CURRENT
-P2-A7  Visited/Achievement calculations
-P2-A8  Daily/weekly/monthly reporting
-P2-A9  Initial workbook import/migration path
-P2-A10 Excel-parity regression gate
+P2-A6  Visit/report actuals + product counters                   DONE
+P2-A7  Visited/Achievement calculations                          DONE
+P2-A8  Daily/weekly/monthly reporting                            DONE
+P2-A9  Initial workbook import/migration path                    COMPATIBILITY GATE
+P2-A10 Excel-parity regression gate                              BLOCKED BY A9 SOURCE CHECK
 ```
 
 ### P2 completed decisions
@@ -225,9 +225,50 @@ Implementation record: `P2-A4-PLANNER-DOMAIN-ENGINE.md`.
 - Plan edits are restricted to owned planned records; cancellation is history-preserving rather than hard deletion.
 - Secured own-plan CRUD API routes use explicit `plans.*.own` permissions and inject authenticated ownership server-side.
 - A cookie-authenticated web HTTP client matches the production API contract.
-- Pages/static preview uses a separate synthetic in-memory model, but List/Calendar/Excel now share one mutable plan state and support add/edit/move/cancel interactions with duplicate/target warnings.
+- Pages/static preview uses a separate synthetic in-memory model, but List/Calendar/Excel share one mutable plan state and support add/edit/move/cancel interactions with duplicate/target warnings.
 
 Implementation record: `P2-A5-PLAN-CRUD.md`.
+
+#### P2-A6
+
+- Plan and Actual Visit are separate persisted concepts.
+- Actual Visits support both `planned` and `unplanned` sources.
+- A completed Actual can link to an owned Plan and completes that Plan without trusting client ownership fields.
+- Product catalog and `visit_product_calls` support multiple independently counted product calls per Actual Visit.
+- Visit/product/location/plan constraints fail closed across workspace and ownership boundaries.
+- Visit + Product Call persistence uses an atomic workspace batch.
+- The Field User Visit page now demonstrates Plan → Actual, Unplanned Actual, product counters and notes over preview state, while a cookie-authenticated web client matches the secured Worker API.
+
+#### P2-A7
+
+- `Visited` is derived from completed Actual Visit record count, not total Product Calls.
+- Product Call totals remain a separate reporting dimension.
+- `Achievement = Visited / Frequency` is applied from the same canonical visit facts.
+- Remaining visits and `incomplete / achieved / over_achieved / not_required` states are executable and tested.
+- Frequency zero never divides by zero.
+- Owner-scoped visit counters are exposed through a secured API/client path for consistent UI/report calculations.
+
+#### P2-A8
+
+- Daily, Saturday-Friday weekly, Jalali monthly and cycle-style reporting are projections over the same Actual Visit source.
+- Cancelled visits are excluded and duplicate visit IDs are not double-counted.
+- Report summaries include completed visits, unique customers, Planned vs Unplanned Actuals and Product Call totals.
+- Per-customer completed visit totals reconcile with `Visited` for the same range.
+- The Reports UI now switches between daily/weekly/monthly/cycle views and renders actual rows, products and report notes from one reporting projection.
+
+#### P2-A9 — compatibility gate
+
+- XLSX/XLSM extraction reads OOXML directly and never executes VBA/macros.
+- Exact source bytes receive a SHA-256 fingerprint for provenance and idempotency.
+- Legacy `Physision` and `Report` adapters support common English/Persian headers, Jalali dates and Excel serial dates.
+- Import Preview distinguishes errors from warnings and fails closed when source references cannot be reconciled.
+- Workbook `Visited`, `Achievement` and product counters are reconciliation inputs only; they do not fabricate Actual Visit history.
+- `workbook_imports` / `workbook_import_rows` stage normalized data before any operational apply.
+- Exact duplicate workbook fingerprints are rejected per workspace.
+- Calendar-grid plan extraction deliberately remains disabled until the exact source workbook layout is verified.
+- The active File Library did not expose the original XLSM during implementation, so exact compatibility validation and the golden Calendar mapping remain external gate items.
+
+Implementation record: `P2-A9-WORKBOOK-IMPORT.md`.
 
 ### P2 scope
 
@@ -251,6 +292,10 @@ Implementation record: `P2-A5-PLAN-CRUD.md`.
 Primary acceptance source: `EXCEL-PARITY-MATRIX.md`.
 
 P2 closes only when the agreed core Plan & Report workflow can be completed without returning to the workbook for missing core functionality.
+
+### Current P2 external dependency
+
+The exact legacy XLSM/XLSX binary is required only for the final P2-A9 compatibility check and P2-A10 golden regression fixture. Until that file is available, code-level development remains green but P2 is not closed.
 
 ---
 
