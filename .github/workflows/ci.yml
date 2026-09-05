@@ -44,6 +44,9 @@ jobs:
       - name: Validate legacy workbook extractor
         run: python3 scripts/validate-workbook-extractor.py
 
+      - name: Validate P2 Excel parity
+        run: pnpm validate:p2-parity
+
       - name: Typecheck
         run: pnpm typecheck
 
