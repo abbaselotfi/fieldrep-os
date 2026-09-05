@@ -32,6 +32,7 @@ export { WorkspaceVisitActualRepository } from './visit-repository'
 export type {
   CalendarActivityRepository,
   CreateActivityInput,
+  UpdateActivityInput,
 } from './calendar-activity-repository'
 export { WorkspaceCalendarActivityRepository } from './calendar-activity-repository'
 export type {
