@@ -47,6 +47,11 @@ export type {
 } from './leave-repository'
 export { WorkspaceLeaveRequestRepository } from './leave-repository'
 export type {
+  BusinessTripRepository,
+  CreateBusinessTripInput,
+} from './business-trip-repository'
+export { WorkspaceBusinessTripRepository } from './business-trip-repository'
+export type {
   PersistedWorkbookImportPreview,
   PersistWorkbookImportPreviewInput,
 } from './workbook-import-repository'
