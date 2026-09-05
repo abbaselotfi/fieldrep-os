@@ -30,6 +30,11 @@ export type {
 } from './visit-repository'
 export { WorkspaceVisitActualRepository } from './visit-repository'
 export type {
+  CalendarActivityRepository,
+  CreateActivityInput,
+} from './calendar-activity-repository'
+export { WorkspaceCalendarActivityRepository } from './calendar-activity-repository'
+export type {
   PersistedWorkbookImportPreview,
   PersistWorkbookImportPreviewInput,
 } from './workbook-import-repository'
