@@ -1,6 +1,6 @@
 const SHELL_CACHE = 'fieldrep-shell-v1'
 const RUNTIME_CACHE = 'fieldrep-runtime-v1'
-const CORE_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icons/app-icon-192.svg', '/icons/app-icon-512.svg']
+const CORE_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icons/app-icon-192.png', '/icons/app-icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(CORE_ASSETS)))
