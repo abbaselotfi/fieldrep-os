@@ -26,6 +26,7 @@ export interface LegacyWorkbookAdapterResult {
 }
 
 const PHYSICIAN_HEADERS = {
+  legacyAlias: ['column1', 'combined name', 'name class', 'نام و کلاس', 'نام پزشک و کلاس'],
   name: ['name', 'physician', 'doctor', 'نام', 'نام پزشک', 'پزشک'],
   specialty: ['specialty', 'speciality', 'تخصص'],
   classKey: ['class', 'کلاس'],
@@ -88,7 +89,11 @@ export function adaptLegacyWorkbookTabular(
 
   const physicianRows =
     physicianSheet === null ? [] : adaptPhysicianRows(physicianSheet.rows, diagnostics)
-  const customerNames = new Set(physicianRows.map((row) => comparable(row.name)))
+  const customerNames = new Set(
+    physicianRows
+      .flatMap((row) => [row.name, ...(row.legacyAliases ?? [])])
+      .map(comparable),
+  )
   const routeNames = new Set(
     physicianRows
       .map((row) => row.route)
@@ -126,6 +131,7 @@ function adaptPhysicianRows(
   }
 
   const indexes = {
+    legacyAlias: optionalHeaderIndex(header.cells, PHYSICIAN_HEADERS.legacyAlias),
     name: requiredHeaderIndex(header.cells, PHYSICIAN_HEADERS.name),
     specialty: optionalHeaderIndex(header.cells, PHYSICIAN_HEADERS.specialty),
     classKey: optionalHeaderIndex(header.cells, PHYSICIAN_HEADERS.classKey),
@@ -153,6 +159,10 @@ function adaptPhysicianRows(
     if (name === '' && row.cells.every((cell) => text(cell) === '')) continue
 
     const item: WorkbookPhysicianRow = { rowNumber: row.rowNumber, name }
+    const legacyAlias = text(valueAt(row, indexes.legacyAlias))
+    if (legacyAlias !== '' && comparable(legacyAlias) !== comparable(name)) {
+      item.legacyAliases = [legacyAlias]
+    }
     setString(item, 'specialty', valueAt(row, indexes.specialty))
     setString(item, 'classKey', valueAt(row, indexes.classKey))
     setString(item, 'route', valueAt(row, indexes.route))
