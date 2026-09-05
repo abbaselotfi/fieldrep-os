@@ -1,46 +1,149 @@
 @import "tailwindcss";
 
 :root {
-  font-family: Inter, Tahoma, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color-scheme: light;
-  --surface-app: #f6f8fb;
-  --surface-raised: #ffffff;
-  --surface-soft: #fafbfc;
-  --text-primary: #172033;
-  --text-secondary: #667085;
-  --text-tertiary: #98a2b3;
-  --border-subtle: #e6eaf0;
-  --accent: #2457d6;
-  --accent-strong: #1d46ad;
-  --accent-soft: #eef3ff;
-  --accent-border: #d9e3ff;
-  --success: #2f8f70;
-  --warning: #d18422;
-  --warning-strong: #925112;
-  --warning-soft: #fff4e5;
-  --danger: #d64545;
+  font-family: Vazirmatn, IRANYekan, "Segoe UI", Tahoma, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color-scheme: dark;
+  --surface-app: #0f172a;
+  --surface-raised: #111c32;
+  --surface-raised-2: #15223a;
+  --surface-soft: #17243d;
+  --surface-muted: #1d2b45;
+  --surface-glass: rgba(15, 23, 42, 0.82);
+  --text-primary: #f8fafc;
+  --text-secondary: #c1cad8;
+  --text-tertiary: #8492a8;
+  --border-subtle: rgba(148, 163, 184, 0.16);
+  --border-strong: rgba(148, 163, 184, 0.28);
+  --accent: #0a66d5;
+  --accent-strong: #60a5fa;
+  --accent-soft: rgba(37, 99, 235, 0.16);
+  --accent-border: rgba(96, 165, 250, 0.28);
+  --success: #10b981;
+  --success-soft: rgba(16, 185, 129, 0.14);
+  --warning: #f59e0b;
+  --warning-strong: #fbbf24;
+  --warning-soft: rgba(245, 158, 11, 0.14);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.14);
+  --ai: #8b5cf6;
+  --ai-strong: #c4b5fd;
+  --ai-soft: rgba(124, 58, 237, 0.16);
+  --shadow-card: 0 18px 50px rgba(2, 8, 23, 0.22);
+  --shadow-float: 0 18px 60px rgba(2, 8, 23, 0.42);
   background: var(--surface-app);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --surface-app: #f8fafc;
+  --surface-raised: #ffffff;
+  --surface-raised-2: #fbfdff;
+  --surface-soft: #f1f5f9;
+  --surface-muted: #e8eef6;
+  --surface-glass: rgba(248, 250, 252, 0.88);
+  --text-primary: #172033;
+  --text-secondary: #667085;
+  --text-tertiary: #98a2b3;
+  --border-subtle: #e3e8ef;
+  --border-strong: #d4dce7;
+  --accent: #0066cc;
+  --accent-strong: #0a4d8c;
+  --accent-soft: #eef6ff;
+  --accent-border: #cfe4ff;
+  --success: #0f9f72;
+  --success-soft: #ecfdf5;
+  --warning: #d97706;
+  --warning-strong: #9a5705;
+  --warning-soft: #fff7e8;
+  --danger: #dc3f3f;
+  --danger-soft: #fff0f0;
+  --ai: #7c3aed;
+  --ai-strong: #6d28d9;
+  --ai-soft: #f4efff;
+  --shadow-card: 0 16px 44px rgba(15, 23, 42, 0.07);
+  --shadow-float: 0 20px 60px rgba(15, 23, 42, 0.14);
+}
+
 * { box-sizing: border-box; }
-html { background: var(--surface-app); }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--surface-app); }
+html { background: var(--surface-app); scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% -8%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 32rem),
+    radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--ai) 9%, transparent), transparent 28rem),
+    var(--surface-app);
+  color: var(--text-primary);
+}
 button, a, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
+input, textarea, select { color: var(--text-primary); }
+input::placeholder, textarea::placeholder { color: var(--text-tertiary); }
+::selection { background: color-mix(in srgb, var(--accent) 35%, transparent); }
 
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--accent) 34%, transparent);
   outline-offset: 2px;
 }
 
+.app-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.app-card-soft {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-soft);
+  border-radius: 20px;
+}
+
+.app-card-interactive {
+  transition: transform 220ms ease, border-color 220ms ease, background-color 220ms ease, box-shadow 220ms ease;
+}
+.app-card-interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.surface-hero {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 24%, var(--surface-raised)) 0%, var(--surface-raised) 55%, color-mix(in srgb, var(--ai) 14%, var(--surface-raised)) 100%);
+}
+
+.ai-surface {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--ai) 20%, var(--surface-raised)), var(--surface-raised) 60%);
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.thin-scrollbar { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.thin-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.thin-scrollbar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+.thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
+/* Existing P2 pages still use Tailwind's white surface utility. Rebind it to the design-system surface in dark mode. */
+:root[data-theme="dark"] .bg-white { background-color: var(--surface-raised) !important; }
+:root[data-theme="dark"] .hover\:bg-white:hover { background-color: var(--surface-raised-2) !important; }
+
+@media (max-width: 1023px) {
+  body { background-attachment: scroll; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   *, *::before, *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
