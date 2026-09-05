@@ -120,12 +120,12 @@ describe('WorkspaceCustomerReadRepository', () => {
       expect(query).toContain('route_filter.route_id = ?')
       expect(query).toContain('dp.class_key = ?')
       expect(query).toContain('dp.specialty = ?')
-      expect(query).toContain("c.display_name LIKE ? ESCAPE '\\'")
+      expect(query).toContain("c.display_name LIKE ? ESCAPE '!'")
       expect(query).not.toContain('Ali%_')
       expect(values).toEqual([
         'workspace-a',
         'user-1',
-        '%Ali\\%\\_%',
+        '%Ali!%!_%',
         'route-1',
         'A',
         'Internal Medicine',

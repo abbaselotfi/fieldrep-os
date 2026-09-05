@@ -86,7 +86,7 @@ export class WorkspaceCustomerReadRepository implements CustomerReadRepository {
 
     const normalizedSearch = filters.search?.trim()
     if (normalizedSearch !== undefined && normalizedSearch !== '') {
-      predicates.push(`c.display_name LIKE ? ESCAPE '\\'`)
+      predicates.push(`c.display_name LIKE ? ESCAPE '!'`)
       values.push(`%${escapeLike(normalizedSearch)}%`)
     }
 
@@ -252,5 +252,5 @@ function mapLocation(row: LocationRow): CustomerLocationSummary {
 }
 
 function escapeLike(value: string): string {
-  return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')
+  return value.replaceAll('!', '!!').replaceAll('%', '!%').replaceAll('_', '!_')
 }
