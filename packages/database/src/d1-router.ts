@@ -72,6 +72,21 @@ class D1WorkspaceDataStore implements WorkspaceDataStore {
       return false
     }
   }
+
+  async queryFirst<T = Record<string, unknown>>(
+    query: string,
+    values: readonly unknown[] = [],
+  ): Promise<T | null> {
+    return this.database.prepare(query).bind(...values).first<T>()
+  }
+
+  async queryAll<T = Record<string, unknown>>(
+    query: string,
+    values: readonly unknown[] = [],
+  ): Promise<T[]> {
+    const result = await this.database.prepare(query).bind(...values).all<T>()
+    return result.results
+  }
 }
 
 export class BoundD1WorkspaceDataRouter implements WorkspaceDataRouter {

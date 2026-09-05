@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { D1DatabaseLike, D1PreparedStatementLike } from './contracts'
+import type { D1DatabaseLike, D1PreparedStatementLike, D1ResultLike } from './contracts'
 import { BoundD1WorkspaceDataRouter } from './d1-router'
 
-type RowResolver = (query: string, values: readonly unknown[]) => unknown | null
+type RowResolver = (query: string, values: readonly unknown[]) => unknown | unknown[] | null
 
 class FakePreparedStatement implements D1PreparedStatementLike {
   private values: unknown[] = []
@@ -19,7 +19,18 @@ class FakePreparedStatement implements D1PreparedStatementLike {
   }
 
   async first<T = Record<string, unknown>>(): Promise<T | null> {
-    return this.resolver(this.query, this.values) as T | null
+    const value = this.resolver(this.query, this.values)
+    if (Array.isArray(value)) {
+      return (value[0] ?? null) as T | null
+    }
+    return value as T | null
+  }
+
+  async all<T = Record<string, unknown>>(): Promise<D1ResultLike<T>> {
+    const value = this.resolver(this.query, this.values)
+    return {
+      results: (value === null ? [] : Array.isArray(value) ? value : [value]) as T[],
+    }
   }
 }
 
@@ -79,6 +90,27 @@ describe('BoundD1WorkspaceDataRouter', () => {
     expect(store.workspaceId).toBe('workspace-a')
     expect(store.schemaVersion).toBe(1)
     await expect(store.health()).resolves.toBe(true)
+  })
+
+  it('exposes bound query methods only after identity verification', async () => {
+    const database = new FakeDatabase((query) => {
+      if (query.includes('workspace_identity')) {
+        return { workspace_id: 'workspace-a', schema_version: 1 }
+      }
+      if (query.includes('FROM routes')) {
+        return [{ id: 'route-1' }, { id: 'route-2' }]
+      }
+      throw new Error(`Unexpected query: ${query}`)
+    })
+    const router = new BoundD1WorkspaceDataRouter(controlDatabase(activeRoute), {
+      WORKSPACE_A_DB: database,
+    })
+
+    const store = await router.get('workspace-a')
+    await expect(store.queryAll<{ id: string }>('SELECT id FROM routes')).resolves.toEqual([
+      { id: 'route-1' },
+      { id: 'route-2' },
+    ])
   })
 
   it('rejects a route whose physical database belongs to another workspace', async () => {

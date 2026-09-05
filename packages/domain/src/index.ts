@@ -55,3 +55,15 @@ export {
   EXCEL_PARITY_DUPLICATE_POLICY,
   findDuplicatePlanConflicts,
 } from './planner-rules'
+export type {
+  CustomerDetail,
+  CustomerListFilters,
+  CustomerLocationSummary,
+  CustomerRecordScope,
+  CustomerSource,
+  CustomerStatus,
+  CustomerSummary,
+  CustomerType,
+  DoctorCustomerProfile,
+  RouteSummary,
+} from './customer'
