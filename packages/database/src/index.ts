@@ -4,9 +4,11 @@ export type {
   D1PreparedStatementLike,
   D1ResultLike,
   D1RunResultLike,
+  WorkspaceAtomicDataStore,
   WorkspaceDataRouter,
   WorkspaceDataStore,
   WorkspaceWritableDataStore,
+  WorkspaceWriteCommand,
   WorkspaceWriteResult,
 } from './contracts'
 export {
@@ -22,3 +24,8 @@ export type {
   UpdatePlanEntryInput,
 } from './plan-repository'
 export { WorkspacePlanEntryRepository } from './plan-repository'
+export type {
+  CreateCompletedVisitInput,
+  VisitActualRepository,
+} from './visit-repository'
+export { WorkspaceVisitActualRepository } from './visit-repository'

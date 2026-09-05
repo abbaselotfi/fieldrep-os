@@ -13,8 +13,17 @@ export interface WorkspaceWriteResult {
   changes: number
 }
 
+export interface WorkspaceWriteCommand {
+  query: string
+  values?: readonly unknown[]
+}
+
 export interface WorkspaceWritableDataStore extends WorkspaceDataStore {
   execute(query: string, values?: readonly unknown[]): Promise<WorkspaceWriteResult>
+}
+
+export interface WorkspaceAtomicDataStore extends WorkspaceWritableDataStore {
+  executeBatch(commands: readonly WorkspaceWriteCommand[]): Promise<WorkspaceWriteResult[]>
 }
 
 export interface WorkspaceDataRouter {
@@ -41,6 +50,7 @@ export interface D1PreparedStatementLike {
 
 export interface D1DatabaseLike {
   prepare(query: string): D1PreparedStatementLike
+  batch?(statements: D1PreparedStatementLike[]): Promise<D1RunResultLike[]>
 }
 
 export type D1BindingRegistry = Readonly<Record<string, D1DatabaseLike | undefined>>

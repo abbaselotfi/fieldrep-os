@@ -3,9 +3,10 @@ import type { WorkspaceId } from '@fieldrep/domain'
 import type {
   D1BindingRegistry,
   D1DatabaseLike,
+  WorkspaceAtomicDataStore,
   WorkspaceDataRouter,
   WorkspaceDataStore,
-  WorkspaceWritableDataStore,
+  WorkspaceWriteCommand,
   WorkspaceWriteResult,
 } from './contracts'
 
@@ -31,6 +32,7 @@ export type WorkspaceDataRouteErrorCode =
   | 'workspace_identity_mismatch'
   | 'workspace_schema_too_old'
   | 'workspace_store_write_unsupported'
+  | 'workspace_store_batch_unsupported'
 
 export class WorkspaceDataRouteError extends Error {
   readonly code: WorkspaceDataRouteErrorCode
@@ -50,7 +52,7 @@ export class WorkspaceDataRouteError extends Error {
   }
 }
 
-class D1WorkspaceDataStore implements WorkspaceWritableDataStore {
+class D1WorkspaceDataStore implements WorkspaceAtomicDataStore {
   readonly workspaceId: WorkspaceId
   readonly schemaVersion: number
 
@@ -104,10 +106,25 @@ class D1WorkspaceDataStore implements WorkspaceWritableDataStore {
     }
 
     const result = await statement.run()
-    return {
-      success: result.success,
-      changes: Number(result.meta?.changes ?? 0),
+    return toWriteResult(result)
+  }
+
+  async executeBatch(
+    commands: readonly WorkspaceWriteCommand[],
+  ): Promise<WorkspaceWriteResult[]> {
+    if (commands.length === 0) return []
+    if (this.database.batch === undefined) {
+      throw new WorkspaceDataRouteError(
+        'workspace_store_batch_unsupported',
+        this.workspaceId,
+      )
     }
+
+    const statements = commands.map((command) =>
+      this.database.prepare(command.query).bind(...(command.values ?? [])),
+    )
+    const results = await this.database.batch(statements)
+    return results.map(toWriteResult)
   }
 }
 
@@ -204,4 +221,11 @@ async function readWorkspaceIdentity(
 function normalizeSchemaVersion(value: number): number {
   const normalized = Number(value)
   return Number.isInteger(normalized) && normalized >= 1 ? normalized : 0
+}
+
+function toWriteResult(result: { success: boolean; meta?: { changes?: number } }): WorkspaceWriteResult {
+  return {
+    success: result.success,
+    changes: Number(result.meta?.changes ?? 0),
+  }
 }
