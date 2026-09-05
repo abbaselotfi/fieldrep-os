@@ -4,7 +4,9 @@ export type {
   BusinessTripId,
   CalendarEventId,
   CompanyId,
+  CompanyProgramId,
   CustomerId,
+  DoctorProgramId,
   LeaveRequestId,
   LocationId,
   MembershipId,
@@ -172,6 +174,21 @@ export {
   requestBusinessTrip,
   validateBusinessTrip,
 } from './business-trip'
+export type {
+  CompanyProgram,
+  CompanyProgramType,
+  DoctorProgram,
+  DoctorProgramDoctor,
+  DoctorProgramType,
+  ProgramAttendanceStatus,
+  ProgramStatus,
+} from './programs'
+export {
+  companyProgramToCalendarItem,
+  doctorProgramToCalendarItem,
+  validateCompanyProgram,
+  validateDoctorProgram,
+} from './programs'
 export type {
   JalaliDateParts,
   PlanningCycleBounds,
