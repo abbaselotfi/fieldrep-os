@@ -1,10 +1,11 @@
-import type {
-  BusinessTrip,
-  BusinessTripDestination,
-  BusinessTripId,
-  BusinessTripTransport,
-  UserId,
-  WorkspaceId,
+import {
+  validateBusinessTrip,
+  type BusinessTrip,
+  type BusinessTripDestination,
+  type BusinessTripId,
+  type BusinessTripTransport,
+  type UserId,
+  type WorkspaceId,
 } from '@fieldrep/domain'
 import { Hono } from 'hono'
 import { z } from 'zod'
@@ -118,8 +119,45 @@ export function createBusinessTripApi(dependencies: BusinessTripApiDependencies)
       ) {
         return c.json({ error: 'invalid_business_trip' }, 400)
       }
+
       const auth = c.get('authContext')
-      const repository = await dependencies.repositoryForWorkspace(c.req.param('workspaceId'))
+      const workspaceId = c.req.param('workspaceId') as WorkspaceId
+      const destinations: BusinessTripDestination[] = parsed.data.destinations.map((destination) => ({
+        id: destination.id,
+        sequence: destination.sequence,
+        city: destination.city,
+        province: destination.province ?? null,
+        address: destination.address ?? null,
+        startsAt: destination.startsAt ?? null,
+        endsAt: destination.endsAt ?? null,
+      }))
+
+      try {
+        validateBusinessTrip({
+          id: parsed.data.id,
+          workspaceId,
+          userId: auth.userId,
+          originCity: parsed.data.originCity,
+          originProvince: parsed.data.originProvince ?? null,
+          purpose: parsed.data.purpose,
+          transport: parsed.data.transport,
+          startsAt: parsed.data.startsAt,
+          endsAt: parsed.data.endsAt,
+          localStartDate: parsed.data.localStartDate,
+          localEndDate: parsed.data.localEndDate,
+          allDay: parsed.data.allDay,
+          blocksPlanning: parsed.data.blocksPlanning,
+          status: 'draft',
+          destinations,
+          decidedByUserId: null,
+          decidedAt: null,
+        })
+      } catch (error) {
+        if (error instanceof RangeError) return c.json({ error: 'invalid_business_trip' }, 400)
+        throw error
+      }
+
+      const repository = await dependencies.repositoryForWorkspace(workspaceId)
       try {
         const trip = await repository.createDraft({
           id: parsed.data.id,
@@ -135,15 +173,7 @@ export function createBusinessTripApi(dependencies: BusinessTripApiDependencies)
           localEndDate: parsed.data.localEndDate,
           allDay: parsed.data.allDay,
           blocksPlanning: parsed.data.blocksPlanning,
-          destinations: parsed.data.destinations.map((destination) => ({
-            id: destination.id,
-            sequence: destination.sequence,
-            city: destination.city,
-            province: destination.province ?? null,
-            address: destination.address ?? null,
-            startsAt: destination.startsAt ?? null,
-            endsAt: destination.endsAt ?? null,
-          })),
+          destinations,
         })
         return c.json({ trip }, 201)
       } catch (error) {
