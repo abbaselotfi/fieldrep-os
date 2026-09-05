@@ -63,7 +63,7 @@ const BREAKS = [
   1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178,
 ] as const
 const BORKOWSKI_MIN_YEAR = BREAKS[0]
-const BORKOWSKI_MAX_YEAR = BREAKS[BREAKS.length - 1] - 1
+const BORKOWSKI_MAX_YEAR = 3177
 
 interface JalCalCore {
   gy: number
@@ -113,7 +113,6 @@ export function persianWeekdayIndex(parts: PersianDateParts): PersianWeekdayInde
 
 export function canonicalWeekdayIndex(canonicalDate: string): PersianWeekdayIndex {
   const date = canonicalToUtcDate(canonicalDate)
-  // getUTCDay(): Sunday=0 ... Saturday=6. Iran/Persian calendar UI starts Saturday.
   return ((date.getUTCDay() + 1) % 7) as PersianWeekdayIndex
 }
 
