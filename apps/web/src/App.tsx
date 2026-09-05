@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppShell } from './app/AppShell'
+import { AiPage } from './pages/AiPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { CustomersPage } from './pages/CustomersPage'
 import { HomePage } from './pages/HomePage'
@@ -17,6 +18,7 @@ export function App() {
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="planner" element={<PlannerPage />} />
         <Route path="customers" element={<CustomersPage />} />
+        <Route path="ai" element={<AiPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="visit/new" element={<VisitPage />} />
