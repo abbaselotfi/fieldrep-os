@@ -105,7 +105,7 @@ describe('business trip API', () => {
       body: JSON.stringify({ ...createBody, destinations: [{ ...trip.destinations[0], startsAt: trip.startsAt - 1 }] }),
     })
     expect(response.status).toBe(400)
-    expect(called).toBe(true)
+    expect(called).toBe(false)
   })
 
   it('exposes request, completion and cancellation as explicit owner transitions', async () => {
