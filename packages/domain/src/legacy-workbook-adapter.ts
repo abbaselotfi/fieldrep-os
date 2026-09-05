@@ -212,7 +212,7 @@ function text(value: LegacyCellValue | undefined): string {
   return String(value).trim().replace(/\s+/gu, ' ')
 }
 
-function number(value: LegacyCellValue): number | null {
+function number(value: LegacyCellValue | undefined): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
   const normalized = text(value).replace(/[٪%]/gu, '').replace(/,/gu, '')
   if (normalized === '') return null
