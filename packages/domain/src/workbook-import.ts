@@ -44,6 +44,7 @@ export interface WorkbookReportRow {
 
 export interface WorkbookPlanRow {
   rowNumber: number
+  sourceCell?: string
   planDate: string
   customerName: string
   route?: string
@@ -96,6 +97,7 @@ export interface WorkbookNormalizedPlan {
   routeNaturalKey: string | null
   productNaturalKeys: string[]
   sourceRow: number
+  sourceCell: string | null
 }
 
 export interface WorkbookImportPreview {
@@ -146,10 +148,10 @@ export function previewWorkbookImport(snapshot: WorkbookExtractedSnapshot): Work
       continue
     }
 
+    // Class is workspace-defined reference data, not a platform enum. The source workbook
+    // legitimately contains values such as D/E and B/C (0.5), so import preserves any
+    // non-empty class label instead of coercing it to A/B/C.
     const classKey = normalizeOptional(row.classKey)
-    if (classKey !== null && !['A', 'B', 'C'].includes(classKey.toUpperCase())) {
-      issues.push(issue('invalid_class', 'warning', 'Physision', row.rowNumber, 'classKey', `Unknown class ${classKey}; preserving value for review.`))
-    }
 
     const routeName = normalizeOptional(row.route)
     const routeNaturalKey = routeName === null ? null : naturalKey(routeName)
@@ -163,7 +165,7 @@ export function previewWorkbookImport(snapshot: WorkbookExtractedSnapshot): Work
       naturalKey: customerNaturalKey,
       displayName: name,
       specialty: normalizeOptional(row.specialty),
-      classKey: classKey === null ? null : classKey.toUpperCase(),
+      classKey,
       requiredFrequency: frequency,
       routeNaturalKey,
       address: normalizeOptional(row.address),
@@ -253,13 +255,15 @@ export function previewWorkbookImport(snapshot: WorkbookExtractedSnapshot): Work
       if (!products.has(key)) products.set(key, { naturalKey: key, name })
       return key
     })
+    const sourceCoordinate = normalizeOptional(row.sourceCell)
     plans.push({
-      naturalKey: `calendar:${row.rowNumber}:${row.planDate}:${customerNaturalKey}`,
+      naturalKey: `calendar:${sourceCoordinate ?? row.rowNumber}:${row.planDate}:${customerNaturalKey}`,
       planDate: row.planDate,
       customerNaturalKey,
       routeNaturalKey,
       productNaturalKeys,
       sourceRow: row.rowNumber,
+      sourceCell: sourceCoordinate,
     })
   }
 
@@ -294,7 +298,7 @@ function issue(code: WorkbookImportIssueCode, severity: WorkbookImportSeverity, 
 }
 
 function normalizeText(value: string | undefined): string {
-  return (value ?? '').trim().replace(/\s+/gu, ' ')
+  return normalizePersian(value ?? '').trim().replace(/\s+/gu, ' ')
 }
 
 function normalizeOptional(value: string | undefined): string | null {
@@ -308,6 +312,14 @@ function naturalKey(value: string): string {
 
 function uniqueNormalized(values: readonly string[]): string[] {
   return [...new Set(values.map(normalizeText).filter((value) => value !== ''))]
+}
+
+function normalizePersian(value: string): string {
+  return value
+    .normalize('NFKC')
+    .replace(/[يى]/gu, 'ی')
+    .replace(/ك/gu, 'ک')
+    .replace(/[\u200c\u200d]/gu, ' ')
 }
 
 function isCanonicalDate(value: string): boolean {
