@@ -121,6 +121,7 @@ export function companyProgramToCalendarItem(
   calendarEventId: CalendarEventId,
 ): CalendarItem {
   validateCompanyProgram(program)
+  const active = program.status === 'scheduled' || program.status === 'completed'
   return {
     id: calendarEventId,
     workspaceId: program.workspaceId,
@@ -137,9 +138,9 @@ export function companyProgramToCalendarItem(
     attendeeUserIds: program.attendeeUserIds,
     behavior: {
       blocksPlanning: program.status === 'scheduled' && program.blocksPlanning,
-      countsAsWorkingActivity: program.status !== 'cancelled' && program.countsAsWorkingActivity,
+      countsAsWorkingActivity: active && program.countsAsWorkingActivity,
       countsAsVisit: false,
-      appearsInReport: program.status !== 'cancelled' && program.appearsInReport,
+      appearsInReport: active && program.appearsInReport,
     },
     status: calendarStatus(program.status),
     locationText: program.locationText,
@@ -151,6 +152,7 @@ export function doctorProgramToCalendarItem(
   calendarEventId: CalendarEventId,
 ): CalendarItem {
   validateDoctorProgram(program)
+  const active = program.status === 'scheduled' || program.status === 'completed'
   return {
     id: calendarEventId,
     workspaceId: program.workspaceId,
@@ -167,9 +169,9 @@ export function doctorProgramToCalendarItem(
     attendeeUserIds: program.attendeeUserIds,
     behavior: {
       blocksPlanning: program.status === 'scheduled' && program.blocksPlanning,
-      countsAsWorkingActivity: program.status !== 'cancelled' && program.countsAsWorkingActivity,
+      countsAsWorkingActivity: active && program.countsAsWorkingActivity,
       countsAsVisit: false,
-      appearsInReport: program.status !== 'cancelled' && program.appearsInReport,
+      appearsInReport: active && program.appearsInReport,
     },
     status: calendarStatus(program.status),
     locationText: program.locationText,
