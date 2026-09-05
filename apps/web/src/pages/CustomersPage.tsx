@@ -97,7 +97,7 @@ export function CustomersPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="min-w-0 flex-1 truncate text-sm font-black">{customer.name}</h2>
-                      <span className={['rounded-full px-2.5 py-1 text-[10px] font-black', classTone[customer.className]].join(' ')}>ABC'.replace('ABC', customer.className)}</span>
+                      <span className={['rounded-full px-2.5 py-1 text-[10px] font-black', classTone[customer.className]].join(' ')}>{customer.className}</span>
                     </div>
                     <p className="mt-1 text-xs text-[var(--text-secondary)]">{customer.specialty}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-tertiary)]">
