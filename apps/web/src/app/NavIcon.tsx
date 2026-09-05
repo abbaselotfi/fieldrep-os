@@ -7,6 +7,10 @@ export type NavIconName =
   | 'settings'
   | 'more'
   | 'plus'
+  | 'ai'
+  | 'visit'
+  | 'bell'
+  | 'theme'
 
 interface NavIconProps {
   name: NavIconName
@@ -70,6 +74,35 @@ export function NavIcon({ name, className = 'h-5 w-5' }: NavIconProps) {
         <svg {...common}>
           <circle cx="12" cy="12" r="3" />
           <path d="M19 13.5v-3l-2-.65a7.7 7.7 0 0 0-.7-1.7l.95-1.9-2.1-2.1-1.9.95a7.7 7.7 0 0 0-1.7-.7L10.9 2h-3l-.65 2.4a7.7 7.7 0 0 0-1.7.7l-1.9-.95-2.1 2.1.95 1.9a7.7 7.7 0 0 0-.7 1.7L.5 10.5v3l2.3.65c.18.6.42 1.17.7 1.7l-.95 1.9 2.1 2.1 1.9-.95c.53.28 1.1.52 1.7.7L8.9 22h3l.65-2.4c.6-.18 1.17-.42 1.7-.7l1.9.95 2.1-2.1-.95-1.9c.28-.53.52-1.1.7-1.7L19 13.5Z" transform="translate(2 -2) scale(.83)" />
+        </svg>
+      )
+    case 'ai':
+      return (
+        <svg {...common}>
+          <path d="m12 3 1.15 3.35L16.5 7.5l-3.35 1.15L12 12l-1.15-3.35L7.5 7.5l3.35-1.15L12 3Z" />
+          <path d="m18.2 12.8.75 2.05 2.05.75-2.05.75-.75 2.05-.75-2.05-2.05-.75 2.05-.75.75-2.05Z" />
+          <path d="m5.4 13.4.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6.6-1.6Z" />
+        </svg>
+      )
+    case 'visit':
+      return (
+        <svg {...common}>
+          <path d="M5 5.5h14v13H5z" />
+          <path d="M8 3.5v4M16 3.5v4M5 9h14" />
+          <path d="m9 14 1.7 1.7L15 11.5" />
+        </svg>
+      )
+    case 'bell':
+      return (
+        <svg {...common}>
+          <path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 6-2.5 7.5h17C20.5 15 18 15 18 9Z" />
+          <path d="M9.5 20h5" />
+        </svg>
+      )
+    case 'theme':
+      return (
+        <svg {...common}>
+          <path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z" />
         </svg>
       )
     case 'more':
