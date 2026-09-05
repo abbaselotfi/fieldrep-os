@@ -14,6 +14,8 @@ export type PlanningCycleId = string
 export type ActivityId = string
 export type CalendarEventId = string
 export type LeaveRequestId = string
+export type BusinessTripId = string
+export type BusinessTripDestinationId = string
 export type RoleKey =
   | 'platform_admin'
   | 'company_admin'
