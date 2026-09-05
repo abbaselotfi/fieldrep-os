@@ -126,3 +126,10 @@ export type {
   WorkbookReportRow,
 } from './workbook-import'
 export { previewWorkbookImport } from './workbook-import'
+export type {
+  LegacyCellValue,
+  LegacyExtractedRow,
+  LegacyWorkbookAdapterResult,
+  LegacyWorkbookTabularSnapshot,
+} from './legacy-workbook-adapter'
+export { adaptLegacyWorkbookTabular } from './legacy-workbook-adapter'
