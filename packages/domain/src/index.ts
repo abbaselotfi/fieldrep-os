@@ -56,6 +56,13 @@ export {
   findDuplicatePlanConflicts,
 } from './planner-rules'
 export type {
+  PlanCandidateEvaluation,
+  PlanCandidateEvaluationInput,
+  PlannerIssue,
+  PlannerIssueCode,
+} from './planner-engine'
+export { evaluatePlanCandidate } from './planner-engine'
+export type {
   CustomerDetail,
   CustomerListFilters,
   CustomerLocationSummary,
