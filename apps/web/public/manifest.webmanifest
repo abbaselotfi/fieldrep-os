@@ -9,8 +9,8 @@
   "scope": ".",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f7f9fc",
-  "theme_color": "#2457d6",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
   "categories": ["business", "productivity"],
   "icons": [
     {
@@ -36,6 +36,11 @@
       "name": "ثبت ویزیت",
       "short_name": "ویزیت",
       "url": "visit/new"
+    },
+    {
+      "name": "دستیار AI",
+      "short_name": "AI",
+      "url": "ai"
     },
     {
       "name": "تقویم",
