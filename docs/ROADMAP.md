@@ -4,7 +4,7 @@
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** COMPLETE — test/security gate passed  
 **P2 status:** IN PROGRESS  
-**Current work item:** P2-A1 — Executable Excel-parity rules and domain contracts
+**Current work item:** P2-A2 — Doctor/customer + route repositories and APIs
 
 ## Product priority
 
@@ -159,8 +159,8 @@ Goal: allow a field user to replace the current workbook for core planning/repor
 ### Internal sequence
 
 ```text
-P2-A1  Executable Excel-parity rules and domain contracts        CURRENT
-P2-A2  Doctor/customer + route repositories and APIs
+P2-A1  Executable Excel-parity rules and domain contracts        DONE
+P2-A2  Doctor/customer + route repositories and APIs             CURRENT
 P2-A3  Planning-cycle / Jalali quarter engine
 P2-A4  Planner domain engine + duplicate/frequency/target rules
 P2-A5  Plan CRUD wired to List/Calendar/Excel views
@@ -170,6 +170,19 @@ P2-A8  Daily/weekly/monthly reporting
 P2-A9  Initial workbook import/migration path
 P2-A10 Excel-parity regression gate
 ```
+
+### P2-A1 completed decisions
+
+- Planner/visit identifiers and contracts are explicit in the domain layer.
+- Frequency/Achievement semantics are executable and unit tested.
+- Zero-frequency records avoid division by zero and return `not_required`.
+- Daily-target progress is executable and unit tested.
+- Duplicate detection is scoped to workspace + user + customer.
+- Default duplicate policy treats same-day repetition as an error and adjacent-day repetition as a warning.
+- Canonical planner dates use `YYYY-MM-DD`; Jalali remains a presentation/planning-cycle concern.
+- PWA source/security validation is now part of CI and installable PNG icons are present.
+
+Implementation record: `P2-A1-EXCEL-PARITY-RULES.md`.
 
 ### P2 scope
 
