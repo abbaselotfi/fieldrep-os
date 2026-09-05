@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 512 512" role="img" aria-label="FieldRep OS">
+  <rect width="512" height="512" rx="128" fill="#2457d6"/>
+  <path d="M156 144h200c17.7 0 32 14.3 32 32v160c0 17.7-14.3 32-32 32H156c-17.7 0-32-14.3-32-32V176c0-17.7 14.3-32 32-32Z" fill="#fff" opacity=".14"/>
+  <path d="M184 180h146c11 0 20 9 20 20s-9 20-20 20H224v48h92c11 0 20 9 20 20s-9 20-20 20h-92v44c0 11-9 20-20 20s-20-9-20-20V200c0-11 9-20 20-20Z" fill="#fff"/>
+  <circle cx="354" cy="324" r="34" fill="#9ee7d0"/>
+  <circle cx="354" cy="324" r="12" fill="#2457d6"/>
+</svg>

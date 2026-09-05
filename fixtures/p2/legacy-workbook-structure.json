@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-09-05",
+  "source": {
+    "kind": "user-provided-legacy-xlsm",
+    "privacy": "structural-metadata-only-no-customer-data"
+  },
+  "sheets": {
+    "Calendar": "A1:M177",
+    "Physision": "A1:L123",
+    "Sheet1": "A1:F121",
+    "Report": "A1:I106",
+    "Lists_Helper": "A1:N8"
+  },
+  "physision": {
+    "dataRows": 122,
+    "uniqueCombinedLabels": 122,
+    "uniquePhysicianNames": 122
+  },
+  "calendar": {
+    "verifiedWeekBlocks": 16,
+    "weekBlockSizeRows": 11,
+    "weekdayHeaderFirstRow": 2,
+    "dateFirstRow": 3,
+    "routeFirstRow": 4,
+    "doctorRowsPerSession": 7,
+    "dailyCountFirstRow": 12,
+    "dayPrimaryColumns": ["A", "C", "E", "G", "I", "K", "M"],
+    "secondSessionColumns": ["B", "D", "F", "H", "J", "L"],
+    "weekdayOrder": ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"],
+    "visibleDateHeaders": 95,
+    "firstVisibleJalaliDate": "1405/03/30",
+    "lastVisibleJalaliDate": "1405/06/31",
+    "matchedPlanCells": 359,
+    "unknownPlanCustomers": 0,
+    "dailyCountMismatches": 0
+  },
+  "report": {
+    "traceablePhysicianRows": 79,
+    "routeMarkerRows": 14,
+    "unknownNonMarkerCustomerRows": 0,
+    "dateCarryForwardRequired": true
+  },
+  "invariants": [
+    "Calendar daily count equals the number of populated doctor cells across that day's available sessions.",
+    "Calendar doctor cells resolve to a Physision combined-label alias while the canonical customer name remains class-free.",
+    "Report continuation rows inherit the most recent explicit visit date.",
+    "Route marker rows in Report are not Actual Visits.",
+    "Workbook Visited/Achievement/product counters never fabricate Actual Visit history.",
+    "No physician names, addresses or other customer-identifying values are stored in this fixture."
+  ]
+}
