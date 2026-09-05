@@ -1,3 +1,4 @@
+import type { WorkbookImportPreview } from '@fieldrep/domain'
 import { describe, expect, it } from 'vitest'
 
 import type {
@@ -24,7 +25,7 @@ class FakeStore implements WorkspaceAtomicDataStore {
   }
 }
 
-const preview = {
+const preview: WorkbookImportPreview = {
   sourceName: 'sample.xlsm',
   sourceSha256: 'a'.repeat(64),
   parserVersion: 'adapter-v1',
@@ -51,7 +52,7 @@ const preview = {
   plans: [],
   issues: [],
   summary: { routes: 1, customers: 1, products: 1, visits: 1, plans: 0, warnings: 0, errors: 0, canApply: true },
-} as const
+}
 
 describe('WorkspaceWorkbookImportRepository', () => {
   it('persists an import manifest and review rows atomically', async () => {
