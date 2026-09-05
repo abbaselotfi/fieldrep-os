@@ -2,9 +2,6 @@ name: GitHub Pages Preview
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/p2-excel-parity-rules
 
 permissions:
   contents: read
