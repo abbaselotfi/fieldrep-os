@@ -41,6 +41,9 @@ jobs:
       - name: Validate PWA shell/security boundary
         run: pnpm validate:pwa
 
+      - name: Validate legacy workbook extractor
+        run: python3 scripts/validate-workbook-extractor.py
+
       - name: Typecheck
         run: pnpm typecheck
 
