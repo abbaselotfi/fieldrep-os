@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  ActivityApiError,
   OwnActivityHttpClient,
   type ActivityApiEntry,
 } from './activity-api-client'
@@ -37,7 +36,7 @@ function jsonResponse(payload: unknown, status = 200): Response {
 
 describe('OwnActivityHttpClient', () => {
   it('lists a date range with cookie credentials and an encoded workspace', async () => {
-    const calls: Array<{ url: string; init?: RequestInit }> = []
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = []
     const fetchImpl: typeof fetch = async (input, init) => {
       calls.push({ url: String(input), init })
       return jsonResponse({ activities: [activity] })
@@ -109,12 +108,10 @@ describe('OwnActivityHttpClient', () => {
     const fetchImpl: typeof fetch = async () => jsonResponse({ error: 'activity_not_found' }, 404)
     const client = new OwnActivityHttpClient('workspace-a', '/api/v1', fetchImpl)
 
-    await expect(client.get('missing')).rejects.toEqual(
-      expect.objectContaining<ActivityApiError>({
-        name: 'ActivityApiError',
-        status: 404,
-        code: 'activity_not_found',
-      }),
-    )
+    await expect(client.get('missing')).rejects.toMatchObject({
+      name: 'ActivityApiError',
+      status: 404,
+      code: 'activity_not_found',
+    })
   })
 })
