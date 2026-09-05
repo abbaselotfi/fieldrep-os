@@ -1,5 +1,7 @@
 export type {
   ActivityId,
+  BusinessTripDestinationId,
+  BusinessTripId,
   CalendarEventId,
   CompanyId,
   CustomerId,
@@ -155,6 +157,21 @@ export {
   submitLeaveRequest,
   validateLeaveRequest,
 } from './leave'
+export type {
+  BusinessTrip,
+  BusinessTripDestination,
+  BusinessTripStatus,
+  BusinessTripTransport,
+} from './business-trip'
+export {
+  businessTripBlocksPlanning,
+  businessTripToCalendarItem,
+  cancelOwnBusinessTrip,
+  completeBusinessTrip,
+  decideBusinessTrip,
+  requestBusinessTrip,
+  validateBusinessTrip,
+} from './business-trip'
 export type {
   JalaliDateParts,
   PlanningCycleBounds,
