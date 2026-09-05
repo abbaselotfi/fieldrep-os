@@ -6,6 +6,7 @@ export type WorkbookImportIssueCode =
   | 'invalid_class'
   | 'missing_route'
   | 'duplicate_physician_row'
+  | 'duplicate_customer_alias'
   | 'invalid_report_date'
   | 'unknown_report_customer'
   | 'visited_report_mismatch'
@@ -24,6 +25,7 @@ export interface WorkbookImportIssue {
 export interface WorkbookPhysicianRow {
   rowNumber: number
   name: string
+  legacyAliases?: readonly string[]
   specialty?: string
   classKey?: string
   route?: string
@@ -128,6 +130,7 @@ export function previewWorkbookImport(snapshot: WorkbookExtractedSnapshot): Work
   const routes = new Map<string, WorkbookNormalizedRoute>()
   const customers = new Map<string, WorkbookNormalizedCustomer>()
   const products = new Map<string, WorkbookNormalizedProduct>()
+  const customerAliases = new Map<string, string>()
 
   for (const row of snapshot.physicianRows) {
     const name = normalizeText(row.name)
@@ -172,6 +175,12 @@ export function previewWorkbookImport(snapshot: WorkbookExtractedSnapshot): Work
       sourceRow: row.rowNumber,
     })
 
+    registerCustomerAlias(customerAliases, customerNaturalKey, customerNaturalKey, row, issues)
+    for (const alias of row.legacyAliases ?? []) {
+      const aliasKey = naturalKey(alias)
+      if (aliasKey !== '') registerCustomerAlias(customerAliases, aliasKey, customerNaturalKey, row, issues)
+    }
+
     for (const [productNameRaw, count] of Object.entries(row.productCounters ?? {})) {
       const productName = normalizeText(productNameRaw)
       if (productName === '') continue
@@ -192,7 +201,8 @@ export function previewWorkbookImport(snapshot: WorkbookExtractedSnapshot): Work
     }
 
     const customerName = normalizeText(row.customerName)
-    const customerNaturalKey = naturalKey(customerName)
+    const inputCustomerKey = naturalKey(customerName)
+    const customerNaturalKey = customerAliases.get(inputCustomerKey) ?? inputCustomerKey
     if (!customers.has(customerNaturalKey)) {
       issues.push(issue('unknown_report_customer', 'error', 'Report', row.rowNumber, 'customerName', `Report customer is not present in Physision: ${customerName}`))
       continue
@@ -240,7 +250,8 @@ export function previewWorkbookImport(snapshot: WorkbookExtractedSnapshot): Work
       continue
     }
     const customerName = normalizeText(row.customerName)
-    const customerNaturalKey = naturalKey(customerName)
+    const inputCustomerKey = naturalKey(customerName)
+    const customerNaturalKey = customerAliases.get(inputCustomerKey) ?? inputCustomerKey
     if (!customers.has(customerNaturalKey)) {
       issues.push(issue('unknown_report_customer', 'error', 'Calendar', row.rowNumber, 'customerName', `Plan customer is not present in Physision: ${customerName}`))
       continue
@@ -291,6 +302,21 @@ export function previewWorkbookImport(snapshot: WorkbookExtractedSnapshot): Work
       canApply: errors === 0,
     },
   }
+}
+
+function registerCustomerAlias(
+  aliases: Map<string, string>,
+  aliasKey: string,
+  customerNaturalKey: string,
+  row: WorkbookPhysicianRow,
+  issues: WorkbookImportIssue[],
+): void {
+  const existing = aliases.get(aliasKey)
+  if (existing !== undefined && existing !== customerNaturalKey) {
+    issues.push(issue('duplicate_customer_alias', 'error', 'Physision', row.rowNumber, 'legacyAliases', `Legacy customer alias resolves to multiple physician records: ${aliasKey}`))
+    return
+  }
+  aliases.set(aliasKey, customerNaturalKey)
 }
 
 function issue(code: WorkbookImportIssueCode, severity: WorkbookImportSeverity, sheetName: string, rowNumber: number, field: string, message: string): WorkbookImportIssue {
