@@ -120,12 +120,18 @@ export function createPlanApi(dependencies: PlanApiDependencies) {
 
       const authContext = c.get('authContext')
       const repository = await dependencies.repositoryForWorkspace(c.req.param('workspaceId'))
+      const input: CreatePlanInput = {
+        id: parsed.data.id,
+        ownerUserId: authContext.userId,
+        planningCycleId: parsed.data.planningCycleId,
+        customerId: parsed.data.customerId,
+        planDate: parsed.data.planDate,
+      }
+      if (parsed.data.routeId !== undefined) input.routeId = parsed.data.routeId
+      if (parsed.data.source !== undefined) input.source = parsed.data.source
 
       try {
-        const entry = await repository.createEntry({
-          ...parsed.data,
-          ownerUserId: authContext.userId,
-        })
+        const entry = await repository.createEntry(input)
         return c.json({ entry }, 201)
       } catch (error) {
         return planWriteError(c, error)
@@ -144,12 +150,19 @@ export function createPlanApi(dependencies: PlanApiDependencies) {
 
       const authContext = c.get('authContext')
       const repository = await dependencies.repositoryForWorkspace(c.req.param('workspaceId'))
+      const patch: UpdatePlanInput = {}
+      if (parsed.data.planningCycleId !== undefined) {
+        patch.planningCycleId = parsed.data.planningCycleId
+      }
+      if (parsed.data.customerId !== undefined) patch.customerId = parsed.data.customerId
+      if (parsed.data.planDate !== undefined) patch.planDate = parsed.data.planDate
+      if (Object.hasOwn(parsed.data, 'routeId')) patch.routeId = parsed.data.routeId ?? null
 
       try {
         const entry = await repository.updateEntry(
           authContext.userId,
           c.req.param('planEntryId'),
-          parsed.data,
+          patch,
         )
         if (entry === null) return c.json({ error: 'plan_entry_not_found' }, 404)
         return c.json({ entry })
