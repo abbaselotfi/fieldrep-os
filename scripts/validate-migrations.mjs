@@ -126,12 +126,13 @@ applyMigrations(
     'customer_doctor_profiles',
     'customer_route_assignments',
     'customer_locations',
+    'planning_cycles',
   ],
   (db) => {
     const now = 1_780_000_000_000
     db.prepare(
       'INSERT INTO workspace_identity (singleton_key, workspace_id, schema_version, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-    ).run('workspace', 'workspace-a', 2, now, now)
+    ).run('workspace', 'workspace-a', 3, now, now)
 
     expectConstraint(
       () =>
@@ -139,7 +140,7 @@ applyMigrations(
           .prepare(
             'INSERT INTO workspace_identity (singleton_key, workspace_id, schema_version, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
           )
-          .run('workspace', 'workspace-b', 2, now, now),
+          .run('workspace', 'workspace-b', 3, now, now),
       'workspace database must have exactly one identity row',
     )
 
@@ -249,5 +250,59 @@ applyMigrations(
     ) {
       throw new Error(`workspace: customer reference seed did not reconcile: ${JSON.stringify(doctor)}`)
     }
+
+    db.prepare(
+      `INSERT INTO planning_cycles
+        (id, workspace_id, cycle_kind, label, jalali_year, jalali_quarter, starts_on, ends_on, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      'cycle-1405-q2',
+      'workspace-a',
+      'jalali_quarter',
+      '1405 Q2',
+      1405,
+      2,
+      '2026-06-22',
+      '2026-09-22',
+      'active',
+      now,
+      now,
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO planning_cycles
+              (id, workspace_id, cycle_kind, label, jalali_year, jalali_quarter, starts_on, ends_on, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run('cycle-duplicate', 'workspace-a', 'jalali_quarter', 'Duplicate', 1405, 2, '2026-06-22', '2026-09-22', 'draft', now, now),
+      'non-archived Jalali quarter must be unique per workspace',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO planning_cycles
+              (id, workspace_id, cycle_kind, label, starts_on, ends_on, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run('cycle-second-active', 'workspace-a', 'custom', 'Second active', '2026-10-01', '2026-10-31', 'active', now, now),
+      'workspace can have only one active planning cycle',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO planning_cycles
+              (id, workspace_id, cycle_kind, label, starts_on, ends_on, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run('cycle-invalid-range', 'workspace-a', 'custom', 'Invalid range', '2026-11-30', '2026-11-01', 'draft', now, now),
+      'planning cycle end date cannot precede start date',
+    )
   },
 )
