@@ -1,10 +1,10 @@
+import type { CalendarItem } from './calendar-contracts'
 import type {
   CalendarEventId,
-  CalendarItem,
   LeaveRequestId,
   UserId,
   WorkspaceId,
-} from './index'
+} from './identity'
 import { canonicalDateToPersian } from './persian-calendar'
 
 export type LeaveType = 'annual' | 'sick' | 'hourly' | 'emergency' | 'other'
