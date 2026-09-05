@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { OwnPlanHttpClient, PlanApiError } from './plan-api-client'
+import { OwnPlanHttpClient } from './plan-api-client'
 
 const entry = {
   id: 'plan-1',
@@ -60,7 +60,7 @@ describe('OwnPlanHttpClient', () => {
     ).resolves.toEqual(entry)
   })
 
-  it('maps stable server error codes to PlanApiError', async () => {
+  it('maps stable server error codes to a typed plan API error shape', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () =>
       new Response(JSON.stringify({ error: 'duplicate_same_day' }), {
         status: 409,
@@ -76,7 +76,7 @@ describe('OwnPlanHttpClient', () => {
         customerId: 'doctor-1',
         planDate: '2026-09-06',
       }),
-    ).rejects.toMatchObject<PlanApiError>({
+    ).rejects.toMatchObject({
       name: 'PlanApiError',
       status: 409,
       code: 'duplicate_same_day',
