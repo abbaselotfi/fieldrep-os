@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   buildPersianMonthGrid,
   canonicalDateToPersian,
+  canonicalWeekdayIndex,
   FIELDREP_MAX_PERSIAN_YEAR,
   FIELDREP_MIN_PERSIAN_YEAR,
   PERSIAN_WEEKDAY_NAMES,
@@ -86,6 +87,7 @@ export function CalendarPage() {
     [visibleMonth],
   )
   const selectedPersian = useMemo(() => canonicalDateToPersian(selectedDate), [selectedDate])
+  const selectedWeekday = useMemo(() => canonicalWeekdayIndex(selectedDate), [selectedDate])
   const selectedEvents = useMemo(
     () =>
       isDemoEventMonth(selectedPersian)
@@ -93,8 +95,6 @@ export function CalendarPage() {
         : [],
     [selectedPersian],
   )
-  const selectedWeekday = grid.cells.find((cell) => cell.canonicalDate === selectedDate)?.weekdayIndex
-    ?? new Date(`${selectedDate}T00:00:00.000Z`).getUTCDay()
 
   function moveMonth(delta: number) {
     const next = shiftPersianMonth(visibleMonth, delta)
@@ -253,7 +253,7 @@ export function CalendarPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-black text-[var(--accent-strong)]">
-                  {PERSIAN_WEEKDAY_NAMES[selectedWeekday === 0 ? 0 : selectedWeekday === 6 ? 6 : selectedWeekday - 1] ?? ''}
+                  {PERSIAN_WEEKDAY_NAMES[selectedWeekday]}
                 </p>
                 <h2 className="mt-1 text-xl font-black">
                   {formatNumber(selectedPersian.day)} {PERSIAN_MONTH_NAMES[selectedPersian.month - 1]}
