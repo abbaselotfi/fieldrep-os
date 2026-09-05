@@ -2,8 +2,9 @@
 
 **Baseline:** 2026-09-05  
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
-**P1 status:** IN PROGRESS  
-**Current work item:** P1-A10 — P1 test/security gate
+**P1 status:** COMPLETE — test/security gate passed  
+**P2 status:** IN PROGRESS  
+**Current work item:** P2-A1 — Executable Excel-parity rules and domain contracts
 
 ## Product priority
 
@@ -84,24 +85,24 @@ Implementation-level ADR decisions intentionally deferred are listed in `P0-ARCH
 
 ---
 
-## P1 — Authentication + Field User Shell — IN PROGRESS
+## P1 — Authentication + Field User Shell — COMPLETE
 
 Goal: create the first real authenticated PWA shell.
 
 ### Internal sequence
 
 ```text
-P1-A0  Scaffold repo/tooling + CI                       DONE
-P1-A1  Shared domain/types + workspace context          DONE
-P1-A2  Auth/security ADR + session foundation           DONE
-P1-A3  Control/workspace DB baseline + data router      DONE
-P1-A4  Permission middleware                            DONE
-P1-A5  Field User responsive shell                      DONE
-P1-A6  Jalali/RTL design-system foundation              DONE
-P1-A7  Home/Calendar/Planner/Customers/Reports/Settings shells  DONE
-P1-A8  Representative sample data + responsive visual review    DONE
+P1-A0  Scaffold repo/tooling + CI                                DONE
+P1-A1  Shared domain/types + workspace context                   DONE
+P1-A2  Auth/security ADR + session foundation                    DONE
+P1-A3  Control/workspace DB baseline + data router               DONE
+P1-A4  Permission middleware                                     DONE
+P1-A5  Field User responsive shell                               DONE
+P1-A6  Jalali/RTL design-system foundation                       DONE
+P1-A7  Home/Calendar/Planner/Customers/Reports/Settings shells   DONE
+P1-A8  Representative sample data + responsive visual review     DONE
 P1-A9  PWA install/static shell foundation                       DONE
-P1-A10 P1 test/security gate                                      CURRENT
+P1-A10 P1 test/security gate                                     DONE
 ```
 
 ### P1 completed decisions
@@ -120,46 +121,57 @@ P1-A10 P1 test/security gate                                      CURRENT
 - Responsive RTL shell uses a desktop right navigation rail and mobile bottom navigation with a primary quick-action slot.
 - Jalali presentation utilities use timezone-aware `Intl` Persian calendar formatting behind reusable helpers.
 - Semantic design tokens, visible focus states, minimum touch targets, and reduced-motion behavior form the P1 design-system baseline.
-- Field User page shells now cover Home, Calendar, Plan & Report, Customers, Reports, Settings, and Visit Report.
+- Field User page shells cover Home, Calendar, Plan & Report, Customers, Reports, Settings, and Visit Report.
 - Planner provides working List / Calendar / Excel / Map presentation modes over one representative field dataset.
 - Representative fixtures cover doctors, pharmacy/clinic records, classes, frequencies, routes, multi-location customers, calendar activities, reports and AI-preview reasons without using production/company data.
 - Responsive review keeps the mobile List view primary, preserves a high-density horizontally scrollable Excel view, and defers the real map renderer to the provider adapter phase.
 - Installable PWA manifest, application icons and production service-worker registration are implemented.
 - The PWA shell uses network-first navigation fallback and same-origin static asset caching while explicitly bypassing `/api/*` and authenticated business-data caching.
 - Offline domain data, sync queues, conflicts and user/workspace cache isolation remain deferred to P4 by design.
+- P1 test/security gate reviewed auth/session boundaries, permissions, workspace routing, migration validation, PWA caching policy, responsive shell and CI; no known architectural blocker remains for P2.
 
 ### P1 implementation documents
 
 - `DESIGN-SYSTEM.md`
 - `P1-A8-RESPONSIVE-VISUAL-REVIEW.md`
 - `P1-A9-PWA-SHELL.md`
+- `P1-A10-TEST-SECURITY-GATE.md`
 - `adr/0004-authentication-session-and-identifier-strategy.md`
 - `migrations/README.md`
 
-### P1 scope
+### P1 exit gate
 
-- Login/session
-- Company/workspace context
-- Authorization foundation
-- Responsive mobile/desktop navigation
-- Jalali UI foundation
-- Home
-- Calendar shell
-- Planner shell + view switcher
-- Customers shell
-- Visit form shell
-- Reports shell
-- Settings
-- PWA installation foundation
-- Representative sample data for visual review
+- Repository migration validation — PASS.
+- TypeScript typecheck — PASS.
+- Unit tests — PASS.
+- Production build — PASS.
+- Authorization boundaries fail closed — PASS.
+- Workspace data routing has physical identity verification — PASS.
+- PWA does not intentionally cache `/api/*` or authenticated business data — PASS.
+- Remote Cloudflare/D1/Auth deployment — DEFERRED to isolated remote environment, not claimed by P1.
 
 ---
 
-## P2 — Excel Parity / Core Field User Panel
+## P2 — Excel Parity / Core Field User Panel — IN PROGRESS
 
 Goal: allow a field user to replace the current workbook for core planning/reporting.
 
-Scope:
+### Internal sequence
+
+```text
+P2-A1  Executable Excel-parity rules and domain contracts        CURRENT
+P2-A2  Doctor/customer + route repositories and APIs
+P2-A3  Planning-cycle / Jalali quarter engine
+P2-A4  Planner domain engine + duplicate/frequency/target rules
+P2-A5  Plan CRUD wired to List/Calendar/Excel views
+P2-A6  Visit/report actuals + product counters
+P2-A7  Visited/Achievement calculations
+P2-A8  Daily/weekly/monthly reporting
+P2-A9  Initial workbook import/migration path
+P2-A10 Excel-parity regression gate
+```
+
+### P2 scope
 
 - Doctors
 - Routes
@@ -179,6 +191,8 @@ Scope:
 - Initial Excel import/migration
 
 Primary acceptance source: `EXCEL-PARITY-MATRIX.md`.
+
+P2 closes only when the agreed core Plan & Report workflow can be completed without returning to the workbook for missing core functionality.
 
 ---
 
