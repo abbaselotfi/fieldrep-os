@@ -44,7 +44,7 @@ assert(workbookImport.includes('product_counter_untraceable'), 'product counters
 assert(workbookImport.includes('visited_report_mismatch'), 'Visited must remain reconciled against traceable Actual Visits')
 
 assert(planningCycle.includes("from './persian-calendar'"), 'planning cycles must use the single authoritative Persian calendar engine')
-assert(calendarEngine.includes('ICU PersianCalendar arithmetic'), 'calendar engine must remain pinned to the ICU-corrected arithmetic contract')
+assert(calendarEngine.includes('Unicode ICU PersianCalendar'), 'calendar engine must remain pinned to the ICU-corrected arithmetic contract')
 assert(calendarEngine.includes('ICU_NON_LEAP_CORRECTIONS'), 'ICU correction years must remain explicit and version-reviewable')
 
 assert(calendarPage.includes('buildPersianMonthGrid'), 'Calendar UI must render from the domain month-grid engine')
@@ -52,6 +52,6 @@ assert(calendarPage.includes('canonicalWeekdayIndex'), 'Calendar selected-day we
 assert(!calendarPage.includes('leadingBlankDays'), 'Calendar UI must not restore a hard-coded leading-day offset')
 assert(!calendarPage.includes('Array.from({ length: 31'), 'Calendar UI must not restore a hard-coded 31-day month')
 
-assert(reporting.includes("status === 'completed'"), 'reporting must continue to project completed Actual Visits')
+assert(reporting.includes("visit.status !== 'completed'"), 'reporting must continue to project completed Actual Visits only')
 
 console.log('P2 Excel-parity structural/source validation: PASS')
