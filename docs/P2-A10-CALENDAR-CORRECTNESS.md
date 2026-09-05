@@ -1,18 +1,18 @@
-# FieldRep OS — P2-A10 Persian Calendar Correctness Gate
+# FieldRep OS — P2-A10 Persian Calendar & Excel-Parity Closure
 
 **Phase:** P2 — Excel Parity / Core Field User Panel  
-**Work item:** P2-A10A  
+**Work items:** P2-A10A / P2-A10B / P2-A10C  
 **Risk level:** CRITICAL — date/weekday drift can invalidate plans and reports  
-**Status:** CODE GATE PASS — UI integration follows in P2-A10B  
+**Status:** COMPLETE / CLOSED  
 **Baseline:** 2026-09-05
 
 ---
 
 ## 1. Decision
 
-The legacy workbook remains a functional/UI baseline, but its one-year hard-coded calendar is **not** the production calendar engine.
+The legacy workbook remains a functional baseline, but its one-year hard-coded Calendar is **not** the production calendar engine.
 
-FieldRep OS uses three independent layers:
+FieldRep OS keeps three independent layers:
 
 ```text
 1. deterministic Solar Hijri civil-date arithmetic
@@ -20,104 +20,114 @@ FieldRep OS uses three independent layers:
 3. versioned official annual holiday/event datasets
 ```
 
-These layers must not be collapsed.
-
-Religious/public-holiday dates are annual sourced data and cannot be inferred solely from a tabular lunar-calendar calculation.
+Religious/public holidays are sourced annual data. They are not inferred from a generic arithmetic lunar conversion and they never alter civil Solar Hijri conversion rules.
 
 ---
 
-## 2. Deterministic conversion engine
+## 2. One authoritative Persian calendar engine
 
-`packages/domain/src/persian-calendar.ts` owns date arithmetic.
+`packages/domain/src/persian-calendar.ts` owns civil-date arithmetic.
 
-The final P2-A10A conversion core is pinned to the current **Unicode ICU PersianCalendar** 33-year-cycle implementation, including ICU's explicit leap-correction table. No network request is needed to convert a date, and the application does not depend on whatever ICU version happens to be installed in a user's browser/OS.
+The final engine is pinned to current **Unicode ICU PersianCalendar** arithmetic, including ICU's explicit correction behavior. FieldRep OS does not rely on whatever ICU version happens to exist in the end user's browser/OS for authoritative conversion.
 
-`Intl` remains an independent differential-test oracle, not the runtime source of truth.
+Planning cycles, legacy import conversion and Calendar UI all delegate to the same domain engine.
 
-FieldRep OS conversion/test support is bounded to:
+Supported/tested application range:
 
 ```text
 1300 .. 1600 SH
 ```
 
-### Why the implementation changed during the gate
+Runtime capabilities include:
 
-The first implementation used the Borkowski/jalaali-js algorithm and passed all current-year anchors plus the uploaded workbook's 95-day sequence. The exhaustive differential test nevertheless found a one-day disagreement at:
+- Jalali/Solar Hijri → canonical Gregorian date-only conversion;
+- canonical Gregorian → Solar Hijri conversion;
+- leap-year validation;
+- exact month length;
+- Saturday-first weekday index;
+- Saturday-Friday week bounds;
+- month-grid construction with spillover days;
+- UTC-safe date-only day arithmetic.
+
+Operational data continues to store canonical `YYYY-MM-DD` and UTC timestamps. Solar Hijri is the calendar/domain/UI projection.
+
+---
+
+## 3. Why Borkowski was rejected as the final engine
+
+The first P2-A10A implementation used a Borkowski/jalaali-js-style conversion and passed current-year anchors plus the real workbook's dense 95-day sequence.
+
+The exhaustive differential test nevertheless found a real one-day divergence at the future correction boundary:
 
 ```text
 1502/12/30
 Borkowski candidate -> 2124-03-20
-current Intl/ICU    -> 1503/01/01 on 2124-03-20
+current ICU/Intl    -> 1503/01/01 on 2124-03-20
 ```
 
-The gate was therefore stopped rather than weakening the test.
+The test was not relaxed or removed.
 
-Inspection of the current upstream ICU `PersianCalendar` showed that ICU now has an explicit astronomical correction table and lists **1502 as a non-leap correction year**. The production core was switched to that pinned current ICU logic, after which the exhaustive test passed.
+Inspection of current Unicode ICU `PersianCalendar` showed an explicit correction table including **1502 as a non-leap correction year**. FieldRep OS therefore switched the authoritative deterministic core to the pinned ICU arithmetic/correction behavior.
 
-This is exactly why FieldRep OS keeps a large differential regression instead of trusting a calendar algorithm by reputation alone.
+After that change, the same exhaustive assertions passed unchanged.
 
-### Official-calendar nuance
-
-The Iranian civil calendar is ultimately astronomical. ICU itself documents that the exact location/meridian becomes relevant for sufficiently distant future years. Therefore:
-
-- the deterministic core provides stable date arithmetic and is regression-pinned;
-- currently published official annual calendars remain the highest authority for operational years;
-- annual public/religious event datasets are versioned separately;
-- if the Calendar Center or ICU publishes a future correction, it becomes a reviewed version update rather than a silent runtime change.
-
-The engine exposes:
-
-- Jalali → canonical Gregorian date-only conversion;
-- canonical Gregorian → Jalali conversion;
-- leap-year validation;
-- month length;
-- Saturday-first weekday index;
-- Saturday-Friday week bounds;
-- month-grid generation with previous/next-month spillover;
-- UTC date-only day arithmetic.
-
-Operational records continue to store canonical `YYYY-MM-DD` / UTC timestamps. Jalali is a calendar/UI/domain projection, not a replacement storage epoch.
+This failure is retained conceptually as the reason calendar correctness is treated as a release gate rather than a visual utility.
 
 ---
 
-## 3. Golden official anchors
+## 4. Exhaustive correctness policy
 
-The regression suite includes anchors around sensitive boundaries:
+For **every valid Solar Hijri day from 1300 through 1600**, automated tests verify:
+
+1. Solar Hijri → canonical → Solar Hijri round trip.
+2. Consecutive valid days map to consecutive canonical days with no gap or duplicate.
+3. The pinned deterministic result agrees with the current ECMAScript `Intl` Persian calendar oracle for the same canonical day.
+4. Month length agrees with leap-year status.
+
+Coverage exceeds 109,000 civil days for both round-trip and differential assertions.
+
+Additional invariants verify:
+
+- leap Esfand has 30 days;
+- non-leap Esfand rejects day 30;
+- Saturday is grid column 0;
+- Friday is grid column 6;
+- adjacent grid cells are exactly one day apart;
+- spillover across month/year boundaries remains continuous;
+- Saturday-Friday week bounds remain correct.
+
+---
+
+## 5. Golden/current anchors
+
+Regression anchors include:
 
 ```text
-1399/01/01  -> 2020-03-20  Friday    (leap year)
+1399/01/01  -> 2020-03-20  Friday
 1399/12/30  -> 2021-03-20  Saturday
-1403/01/01  -> 2024-03-20  Wednesday (leap year)
+1403/01/01  -> 2024-03-20  Wednesday
 1403/12/30  -> 2025-03-20  Thursday
-1404/01/01  -> 2025-03-21  Friday    (common year)
-1405/01/01  -> 2026-03-21  Saturday  (common year)
+1404/01/01  -> 2025-03-21  Friday
+1405/01/01  -> 2026-03-21  Saturday
 1405/04/01  -> 2026-06-22  Monday
 1405/06/14  -> 2026-09-05  Saturday
 1405/06/31  -> 2026-09-22  Tuesday
 ```
 
-Source hierarchy:
+Annual operational-date source hierarchy:
 
-1. **Calendar Center, Institute of Geophysics, University of Tehran** — official annual Iranian calendar publication.
-2. **Time.ir** — independent annual/current calendar and event validation.
-3. **Unicode ICU** — pinned computational reference and differential oracle family.
-4. Other public sources are corroboration only.
+1. **Calendar Center, Institute of Geophysics, University of Tehran** — primary official annual Iranian calendar publication.
+2. **Time.ir** — independent current/annual/event cross-check.
+3. **Unicode ICU** — pinned computational reference/correction behavior.
+4. Other public sources — corroboration only.
 
-References reviewed during this gate:
-
-- `https://calendar.ut.ac.ir/`
-- `https://calendar.ut.ac.ir/documents/2139738/7092644/Calendar-1405.pdf`
-- `https://www.time.ir/`
-- `https://www.time.ir/event-year`
-- `unicode-org/icu` — current `PersianCalendar.java`
-
-Time.ir independently reports 1405/06/14 as Saturday 2026-09-05 and identifies 1405 as non-leap.
+Official annual publications remain particularly important for public/religious holidays and for reviewing sufficiently distant future-year corrections.
 
 ---
 
-## 4. Uploaded workbook as a dense weekday regression source
+## 6. Real XLSM as a dense weekday regression
 
-The real XLSM Calendar contains 95 consecutive visible Jalali date headers from:
+The uploaded XLSM contributes 95 consecutive visible Solar Hijri date headers:
 
 ```text
 1405/03/30 Saturday
@@ -125,65 +135,59 @@ through
 1405/06/31 Tuesday
 ```
 
-The workbook's weekday sequence is:
+The sequence crosses Khordad→Tir, Tir→Mordad and Mordad→Shahrivar while exercising 31-day months and repeated Saturday→Friday rollover.
+
+The test uses only sanitized date/weekday facts; no physician/customer data is committed.
+
+All 95 workbook date/weekday headers agree with the authoritative engine.
+
+---
+
+## 7. P2-A10B — real Calendar UI integration
+
+`apps/web/src/pages/CalendarPage.tsx` now renders civil dates from the domain engine rather than from demo month geometry.
+
+It uses:
 
 ```text
-Saturday Sunday Monday Tuesday Wednesday Thursday Friday
+buildPersianMonthGrid()
+canonicalDateToPersian()
+canonicalWeekdayIndex()
+persianDateToCanonical()
+PERSIAN_WEEKDAY_NAMES
 ```
 
-A sanitized regression test uses only this date/weekday sequence — no physician, route or address data is committed.
+The UI now supports:
 
-It checks:
+- exact Solar Hijri month length;
+- Saturday-first columns;
+- previous/next month navigation;
+- Today using Iran timezone;
+- previous/next-month spillover cells;
+- selected-day state;
+- Friday visual state;
+- activity/company-closure indicators;
+- selected-day agenda panel.
 
-- Khordad→Tir transition;
-- Tir→Mordad transition;
-- Mordad→Shahrivar transition;
-- 31-day month handling;
-- week rollover;
-- Saturday-first indexing;
-- absence of progressive weekday drift.
+Removed failure-prone patterns include:
 
----
+```text
+hard-coded leadingBlankDays
+hard-coded 31-day month arrays
+independent JavaScript weekday interpretation in the agenda panel
+```
 
-## 5. Exhaustive multi-year test policy
+Visual direction is a modern clean enterprise/pharma workspace: restrained status colors, strong typography, whitespace, large touch targets and clear operational emphasis rather than a public-calendar/consumer-site aesthetic.
 
-For **every valid day from 1300 through 1600** the suite verifies:
-
-1. Jalali → canonical → Jalali round trip.
-2. Consecutive valid Jalali dates map to consecutive canonical days with no gap/duplication.
-3. The pinned deterministic result matches current ECMAScript `Intl.DateTimeFormat(... u-ca-persian ...)` for the same canonical day.
-4. Month lengths agree with leap-year status.
-
-This covers more than 109,000 civil days, including every leap/common boundary in the supported range.
-
-The first execution deliberately failed on the 1502 correction described above. The ICU-corrected implementation subsequently passed the same unchanged exhaustive assertion.
+Activity overlays are still demo data at P2; P3 replaces them with persisted/scoped operational activities.
 
 ---
 
-## 6. Month-grid invariants
+## 8. Official/religious holiday architecture
 
-A production month grid is generated from date arithmetic rather than pre-authored weekday offsets.
+`packages/domain/src/official-calendar.ts` defines a versioned annual dataset contract containing source provenance and explicit event/holiday state.
 
-Required invariants:
-
-- column 0 is always Saturday;
-- column 6 is always Friday;
-- adjacent grid cells are exactly one canonical day apart;
-- current-month cell count equals the exact Jalali month length;
-- previous/next-month spillover remains chronologically continuous;
-- leap Esfand has 30 days;
-- non-leap Esfand rejects day 30;
-- browser/server timezone cannot alter a date-only weekday because grid arithmetic uses UTC canonical days.
-
-Examples covered include Farvardin 1404/1405 and leap Esfand 1403.
-
----
-
-## 7. Official/religious holiday architecture
-
-Holiday/event correctness is separate from Solar Hijri conversion correctness.
-
-`packages/domain/src/official-calendar.ts` defines a versioned annual dataset contract:
+Conceptually:
 
 ```text
 countryCode
@@ -194,19 +198,9 @@ sources[]
 events[]
 ```
 
-Each event stores:
+Each event carries both Solar Hijri and canonical date values and fails validation if they do not resolve to the same civil day.
 
-```text
-id
-Persian date
-canonical date
-label
-kind
-isHoliday
-source authority/reference/retrievedAt
-```
-
-Kinds:
+Kinds include:
 
 ```text
 public_holiday
@@ -215,74 +209,79 @@ national
 observance
 ```
 
-Dataset validation fails if the stored canonical date and Jalali date do not resolve to the same civil day. Multiple events may exist on one date, and holiday status is explicit.
+Multiple events can coexist on one day; `isHoliday` is explicit.
 
----
-
-## 8. Religious-holiday policy
-
-FieldRep OS must **not** do this:
+P3 composes:
 
 ```text
-Solar Hijri date
-→ arithmetic Hijri lunar formula
-→ assume official Iranian religious holiday
-```
-
-Instead:
-
-```text
-Official annual Iranian calendar / verified annual source
-→ versioned event dataset
-→ civil-date consistency validation
-→ published platform calendar version
-```
-
-Time.ir is useful as an independent annual validation source and exposes religious events together with their Solar Hijri dates. It is not a runtime dependency queried on every calendar render.
-
-If an official correction changes an event, a new dataset version is published and prior versions remain auditable.
-
----
-
-## 9. Company calendar overlay
-
-P3 calendar composition will be:
-
-```text
-base Jalali civil calendar
-+ verified official Iran annual dataset
-+ company/workspace holiday overrides
+base Solar Hijri civil calendar
++ verified annual Iran dataset
 + working-week policy
++ company/workspace closures/overrides
 + leave/trip/meeting/program activities
 ```
 
-Company overrides never alter date-conversion arithmetic.
+Company overrides never change the civil conversion engine.
 
 ---
 
-## 10. P2-A10A result
+## 9. P2-A10C — dedicated Excel-parity closure gate
 
-The code-level correctness gate now passes:
+A sanitized structural manifest of the exact XLSM is stored at:
+
+`fixtures/p2/legacy-workbook-structure.json`
+
+It contains counts/layout invariants only, with no physician names or addresses.
+
+A dedicated validator is now part of CI:
 
 ```text
-SQL migration validation          PASS
-PWA security validation           PASS
-Legacy XLSM extractor validation  PASS
-TypeScript                        PASS
-Exhaustive calendar/unit tests    PASS
-Production build                  PASS
+pnpm validate:p2-parity
 ```
 
-Calendar-specific coverage includes:
+It protects the verified workbook/import contracts and runs a focused P2 test set covering:
 
-- current/official anchors;
-- uploaded-workbook 95-date sequence;
-- >109,000 day round-trip;
-- >109,000 day Intl differential check;
-- discovered ICU correction year 1502;
-- leap/non-leap Esfand;
-- Saturday-first month grids;
-- Saturday-Friday week bounds;
-- official-calendar dataset validation.
+- planner/frequency/duplicate/target rules;
+- one authoritative Solar Hijri engine;
+- official-calendar validation;
+- legacy workbook adapter;
+- clean-name + combined-label alias resolution;
+- import preview/no-fabricated-history policy;
+- customer/plan/visit/import repositories;
+- secured customer/plan/visit APIs;
+- planner/visit/report preview projections;
+- Calendar UI dependence on the domain month-grid engine.
 
-**P2-A10A is complete.** P2-A10B integrates this domain engine into the actual Calendar UI so rendering no longer depends on static/demo month coordinates.
+Verified real-workbook golden facts include:
+
+```text
+Physision physician rows            122
+Calendar week blocks                 16
+Visible date headers                 95
+Matched Calendar Plan cells         359
+Unknown Calendar customers            0
+Daily-count mismatches                0
+Traceable Report physician rows      79
+Report route-marker rows              14
+Unknown non-marker Report customers   0
+```
+
+---
+
+## 10. Final P2-A10 result
+
+Final closure gate:
+
+```text
+SQL migration validation           PASS
+PWA security validation            PASS
+Legacy XLSM extractor validation   PASS
+P2 Excel-parity focused gate       PASS
+TypeScript                         PASS
+Full unit suite                    PASS
+Production build                   PASS
+```
+
+**P2-A10A, P2-A10B and P2-A10C are CLOSED / DONE.**
+
+P2 can advance to P3 without a calendar correctness or workbook-availability blocker. No production Cloudflare/D1 deployment is claimed by this code-level closure.
