@@ -18,6 +18,7 @@
     "uniquePhysicianNames": 122
   },
   "calendar": {
+    "verifiedWeekBlocks": 16,
     "weekBlockSizeRows": 11,
     "weekdayHeaderFirstRow": 2,
     "dateFirstRow": 3,
@@ -42,7 +43,7 @@
   },
   "invariants": [
     "Calendar daily count equals the number of populated doctor cells across that day's available sessions.",
-    "Calendar doctor cells resolve to the Physision combined-label master list.",
+    "Calendar doctor cells resolve to a Physision combined-label alias while the canonical customer name remains class-free.",
     "Report continuation rows inherit the most recent explicit visit date.",
     "Route marker rows in Report are not Actual Visits.",
     "Workbook Visited/Achievement/product counters never fabricate Actual Visit history.",
