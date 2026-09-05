@@ -98,3 +98,15 @@ export type {
 } from './visit-contracts'
 export type { CustomerVisitProgressProjection } from './visit-progress'
 export { deriveCustomerVisitProgress } from './visit-progress'
+export type {
+  VisitReportBounds,
+  VisitReportPeriod,
+  VisitReportProductTotal,
+  VisitReportSummary,
+} from './reporting'
+export {
+  completedVisitCountForCustomer,
+  completedVisitsInRange,
+  summarizeVisitReport,
+  visitReportBounds,
+} from './reporting'
