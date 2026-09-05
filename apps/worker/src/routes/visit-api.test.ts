@@ -1,4 +1,9 @@
-import type { AuthContext, ProductSummary, VisitActual } from '@fieldrep/domain'
+import type {
+  AuthContext,
+  CustomerVisitCounters,
+  ProductSummary,
+  VisitActual,
+} from '@fieldrep/domain'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -42,12 +47,20 @@ const visit: VisitActual = {
   productCalls: [{ productId: 'product-1', callCount: 1 }],
 }
 
+const counters: CustomerVisitCounters = {
+  customerId: 'doctor-1',
+  completedVisitRecords: 4,
+  totalProductCalls: 7,
+  byProduct: [{ productId: 'product-1', callCount: 7 }],
+}
+
 function repository(overrides: Partial<VisitApiRepository> = {}): VisitApiRepository {
   return {
     listProducts: async () => [product],
     listVisits: async () => [],
     createCompletedVisit: async () => visit,
     cancelVisit: async () => true,
+    getCustomerCounters: async () => counters,
     ...overrides,
   }
 }
@@ -99,6 +112,50 @@ describe('visit API', () => {
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ products: [product] })
+  })
+
+  it('returns authenticated-user customer counters for a valid range', async () => {
+    const app = createVisitApi(
+      dependencies(
+        repository({
+          getCustomerCounters: async (ownerUserId, customerId, fromDate, toDate) => {
+            expect(ownerUserId).toBe('user-1')
+            expect(customerId).toBe('doctor-1')
+            expect(fromDate).toBe('2026-09-01')
+            expect(toDate).toBe('2026-09-30')
+            return counters
+          },
+        }),
+      ),
+    )
+
+    const response = await app.request(
+      '/workspaces/workspace-a/visit-counters/doctor-1?from=2026-09-01&to=2026-09-30',
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ counters })
+  })
+
+  it('rejects invalid counter date ranges before repository access', async () => {
+    let called = false
+    const app = createVisitApi(
+      dependencies(
+        repository({
+          getCustomerCounters: async () => {
+            called = true
+            return counters
+          },
+        }),
+      ),
+    )
+
+    const response = await app.request(
+      '/workspaces/workspace-a/visit-counters/doctor-1?from=2026-09-30&to=2026-09-01',
+    )
+
+    expect(response.status).toBe(400)
+    expect(called).toBe(false)
   })
 
   it('injects authenticated ownership and accepts planned actuals', async () => {

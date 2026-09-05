@@ -15,6 +15,13 @@ export interface VisitApiProduct {
   sortOrder: number
 }
 
+export interface VisitApiCustomerCounters {
+  customerId: string
+  completedVisitRecords: number
+  totalProductCalls: number
+  byProduct: VisitApiProductCall[]
+}
+
 export interface VisitApiActual {
   id: string
   workspaceId: string
@@ -71,6 +78,14 @@ export class OwnVisitHttpClient {
       `${this.workspaceUrl()}/visits?${query.toString()}`,
     )
     return payload.visits
+  }
+
+  async counters(customerId: string, from: string, to: string): Promise<VisitApiCustomerCounters> {
+    const query = new URLSearchParams({ from, to })
+    const payload = await this.request<{ counters: VisitApiCustomerCounters }>(
+      `${this.workspaceUrl()}/visit-counters/${encodeURIComponent(customerId)}?${query.toString()}`,
+    )
+    return payload.counters
   }
 
   async create(input: CreateOwnVisitRequest): Promise<VisitApiActual> {

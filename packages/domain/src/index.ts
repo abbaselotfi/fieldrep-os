@@ -96,3 +96,5 @@ export type {
   VisitSource,
   VisitStatus,
 } from './visit-contracts'
+export type { CustomerVisitProgressProjection } from './visit-progress'
+export { deriveCustomerVisitProgress } from './visit-progress'

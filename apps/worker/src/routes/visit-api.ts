@@ -1,5 +1,6 @@
 import type {
   CustomerId,
+  CustomerVisitCounters,
   LocationId,
   PlanEntryId,
   ProductSummary,
@@ -36,6 +37,12 @@ export interface VisitApiRepository {
   listVisits(ownerUserId: UserId, fromDate: string, toDate: string): Promise<VisitActual[]>
   createCompletedVisit(input: CreateVisitInput): Promise<VisitActual>
   cancelVisit(ownerUserId: UserId, visitId: VisitId): Promise<boolean>
+  getCustomerCounters(
+    ownerUserId: UserId,
+    customerId: CustomerId,
+    fromDate: string,
+    toDate: string,
+  ): Promise<CustomerVisitCounters>
 }
 
 export interface VisitApiDependencies {
@@ -77,6 +84,27 @@ export function createVisitApi(dependencies: VisitApiDependencies) {
     async (c) => {
       const repository = await dependencies.repositoryForWorkspace(c.req.param('workspaceId'))
       return c.json({ products: await repository.listProducts() })
+    },
+  )
+
+  app.get(
+    '/workspaces/:workspaceId/visit-counters/:customerId',
+    requireWorkspacePermission('visits.read.own'),
+    async (c) => {
+      const parsed = visitRangeSchema.safeParse(c.req.query())
+      if (!parsed.success || parsed.data.from > parsed.data.to) {
+        return c.json({ error: 'invalid_visit_range' }, 400)
+      }
+
+      const authContext = c.get('authContext')
+      const repository = await dependencies.repositoryForWorkspace(c.req.param('workspaceId'))
+      const counters = await repository.getCustomerCounters(
+        authContext.userId,
+        c.req.param('customerId'),
+        parsed.data.from,
+        parsed.data.to,
+      )
+      return c.json({ counters })
     },
   )
 

@@ -24,6 +24,13 @@ const visit = {
   productCalls: [{ productId: 'product-1', callCount: 1 }],
 }
 
+const counters = {
+  customerId: 'doctor-1',
+  completedVisitRecords: 4,
+  totalProductCalls: 7,
+  byProduct: [{ productId: 'product-1', callCount: 7 }],
+}
+
 describe('OwnVisitHttpClient', () => {
   it('loads active products with cookie credentials and an encoded workspace path', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () =>
@@ -81,6 +88,21 @@ describe('OwnVisitHttpClient', () => {
     await expect(client.list('2026-09-01', '2026-09-30')).resolves.toEqual([visit])
     expect(fetchImpl.mock.calls[0]?.[0]).toBe(
       '/api/v1/workspaces/workspace-a/visits?from=2026-09-01&to=2026-09-30',
+    )
+  })
+
+  it('loads own customer visit counters for achievement projections', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      new Response(JSON.stringify({ counters }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    const client = new OwnVisitHttpClient('workspace-a', '/api/v1', fetchImpl)
+
+    await expect(client.counters('doctor/1', '2026-09-01', '2026-09-30')).resolves.toEqual(counters)
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      '/api/v1/workspaces/workspace-a/visit-counters/doctor%2F1?from=2026-09-01&to=2026-09-30',
     )
   })
 
