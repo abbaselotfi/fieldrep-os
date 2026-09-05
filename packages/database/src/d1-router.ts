@@ -5,6 +5,8 @@ import type {
   D1DatabaseLike,
   WorkspaceDataRouter,
   WorkspaceDataStore,
+  WorkspaceWritableDataStore,
+  WorkspaceWriteResult,
 } from './contracts'
 
 interface WorkspaceDataRouteRow {
@@ -28,6 +30,7 @@ export type WorkspaceDataRouteErrorCode =
   | 'workspace_identity_missing'
   | 'workspace_identity_mismatch'
   | 'workspace_schema_too_old'
+  | 'workspace_store_write_unsupported'
 
 export class WorkspaceDataRouteError extends Error {
   readonly code: WorkspaceDataRouteErrorCode
@@ -47,7 +50,7 @@ export class WorkspaceDataRouteError extends Error {
   }
 }
 
-class D1WorkspaceDataStore implements WorkspaceDataStore {
+class D1WorkspaceDataStore implements WorkspaceWritableDataStore {
   readonly workspaceId: WorkspaceId
   readonly schemaVersion: number
 
@@ -86,6 +89,25 @@ class D1WorkspaceDataStore implements WorkspaceDataStore {
   ): Promise<T[]> {
     const result = await this.database.prepare(query).bind(...values).all<T>()
     return result.results
+  }
+
+  async execute(
+    query: string,
+    values: readonly unknown[] = [],
+  ): Promise<WorkspaceWriteResult> {
+    const statement = this.database.prepare(query).bind(...values)
+    if (statement.run === undefined) {
+      throw new WorkspaceDataRouteError(
+        'workspace_store_write_unsupported',
+        this.workspaceId,
+      )
+    }
+
+    const result = await statement.run()
+    return {
+      success: result.success,
+      changes: Number(result.meta?.changes ?? 0),
+    }
   }
 }
 
