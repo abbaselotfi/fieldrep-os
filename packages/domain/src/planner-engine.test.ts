@@ -134,4 +134,43 @@ describe('planner domain engine', () => {
     expect(result.issues).toContainEqual({ code: 'daily_target_exceeded', severity: 'warning' })
     expect(result.canAdd).toBe(true)
   })
+
+  it('calculates the daily target only from the candidate owner inside the same workspace', () => {
+    const existingEntries = [
+      entry({ id: 'mine', customerId: 'doctor-2' }),
+      entry({ id: 'other-user', ownerUserId: 'user-2', customerId: 'doctor-3' }),
+      entry({ id: 'other-workspace', workspaceId: 'workspace-b', customerId: 'doctor-4' }),
+    ]
+
+    const result = evaluatePlanCandidate({
+      cycle,
+      dailyTarget: 2,
+      existingEntries,
+      candidate: entry(),
+      requiredFrequency: 6,
+      visited: 1,
+    })
+
+    expect(result.dailyTargetBefore).toMatchObject({ planned: 1, status: 'below_target' })
+    expect(result.dailyTargetAfter).toMatchObject({ planned: 2, status: 'target_met' })
+    expect(result.issues).not.toContainEqual({ code: 'daily_target_exceeded', severity: 'warning' })
+  })
+
+  it('does not report a duplicate belonging to another user or workspace', () => {
+    const result = evaluatePlanCandidate({
+      cycle,
+      dailyTarget: 9,
+      existingEntries: [
+        entry({ id: 'other-user', ownerUserId: 'user-2' }),
+        entry({ id: 'other-workspace', workspaceId: 'workspace-b' }),
+      ],
+      candidate: entry(),
+      requiredFrequency: 6,
+      visited: 1,
+    })
+
+    expect(result.canAdd).toBe(true)
+    expect(result.duplicateConflicts).toEqual([])
+    expect(result.issues).not.toContainEqual({ code: 'duplicate_same_day', severity: 'error' })
+  })
 })

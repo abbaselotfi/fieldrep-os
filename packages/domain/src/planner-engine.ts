@@ -49,11 +49,16 @@ export interface PlanCandidateEvaluation {
 export function evaluatePlanCandidate(
   input: PlanCandidateEvaluationInput,
 ): PlanCandidateEvaluation {
+  const scopedEntries = input.existingEntries.filter(
+    (entry) =>
+      entry.workspaceId === input.candidate.workspaceId &&
+      entry.ownerUserId === input.candidate.ownerUserId,
+  )
   const visitProgress = deriveVisitProgress(input.requiredFrequency, input.visited)
-  const plannedBefore = countActivePlanEntries(input.existingEntries, input.candidate.planDate)
+  const plannedBefore = countActivePlanEntries(scopedEntries, input.candidate.planDate)
   const dailyTargetBefore = evaluateDailyTarget(input.dailyTarget, plannedBefore)
   const dailyTargetAfter = evaluateDailyTarget(input.dailyTarget, plannedBefore + 1)
-  const duplicateConflicts = findDuplicatePlanConflicts(input.existingEntries, input.candidate)
+  const duplicateConflicts = findDuplicatePlanConflicts(scopedEntries, input.candidate)
   const issues: PlannerIssue[] = []
 
   if (!isDateInPlanningCycle(input.candidate.planDate, input.cycle)) {
