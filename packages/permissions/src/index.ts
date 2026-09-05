@@ -22,6 +22,10 @@ export const FIELD_USER_PERMISSIONS = {
   activityCreateOwn: 'activities.create.own',
   activityUpdateOwn: 'activities.update.own',
   activityCancelOwn: 'activities.cancel.own',
+  leaveReadOwn: 'leave.read.own',
+  leaveCreateOwn: 'leave.create.own',
+  leaveRequestOwn: 'leave.request.own',
+  leaveCancelOwn: 'leave.cancel.own',
   settingsUpdateOwn: 'settings.update.own',
 } as const satisfies Record<string, PermissionKey>
 
@@ -73,14 +77,8 @@ export function scopeGrantAllowsResource(
     case 'self':
       return resource.ownerUserId !== undefined && context.userId === resource.ownerUserId
     case 'organization_unit': {
-      if (resource.organizationUnitId === undefined) {
-        return false
-      }
-
-      if (grant.id === resource.organizationUnitId) {
-        return true
-      }
-
+      if (resource.organizationUnitId === undefined) return false
+      if (grant.id === resource.organizationUnitId) return true
       return (
         grant.includeDescendants &&
         options.organizationUnitContains?.(grant.id, resource.organizationUnitId) === true
@@ -97,7 +95,6 @@ export function hasApplicableScope(
   if (context.companyId !== resource.companyId || context.workspaceId !== resource.workspaceId) {
     return false
   }
-
   return context.scopes.some((grant) => scopeGrantAllowsResource(context, grant, resource, options))
 }
 
