@@ -1,4 +1,6 @@
 export type {
+  ActivityId,
+  CalendarEventId,
   CompanyId,
   CustomerId,
   LocationId,
@@ -74,6 +76,23 @@ export type {
   DoctorCustomerProfile,
   RouteSummary,
 } from './customer'
+export type {
+  Activity,
+  ActivityStatus,
+  ActivityType,
+  CalendarBehavior,
+  CalendarItem,
+  CalendarItemStatus,
+  CalendarItemType,
+  CalendarScope,
+  CalendarSourceType,
+} from './calendar-contracts'
+export {
+  activityToCalendarItem,
+  isCalendarItemVisibleToUser,
+  validateActivity,
+  validateCalendarItem,
+} from './calendar-contracts'
 export type {
   PersianDateParts,
   GregorianDateParts,
