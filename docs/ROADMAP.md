@@ -2,20 +2,18 @@
 
 **Baseline:** 2026-09-05  
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
-**P1 status:** COMPLETE — test/security gate passed  
-**P2 status:** IN PROGRESS  
-**Current work item:** P2-A9 — code complete; exact legacy-workbook compatibility verification pending source XLSM
+**P1 status:** COMPLETE — authenticated Field User shell/test-security gate passed  
+**P2 status:** COMPLETE — real XLSM compatibility + Excel-parity regression gate passed  
+**Current work item:** P3-A1 — Operational Calendar domain/persistence foundation
 
 ## Product priority
 
-The first production-critical surface is the **Field User Workspace**. The current Excel Plan & Report workbook is its functional baseline.
-
-Architecture anticipates the full SaaS platform, while implementation priority is:
+The first production-critical surface is the **Field User Workspace**. The legacy Plan & Report workbook remains its functional baseline, while FieldRep OS replaces spreadsheet implementation constraints with explicit domain models, secure APIs, responsive PWA UX and auditable persistence.
 
 ```text
 authenticated field user
-→ Excel parity
-→ operational calendar
+→ Excel parity                         COMPLETE
+→ operational calendar                NEXT / P3
 → offline PWA
 → maps/location
 → visit verification
@@ -29,9 +27,7 @@ authenticated field user
 
 ## P0 — Product & Architecture Foundation — COMPLETE
 
-Goal: define stable boundaries before application scaffolding.
-
-### Completed work items
+Goal: freeze the important platform boundaries before implementation.
 
 ```text
 P0-A1  Field User + Excel parity + PWA UX       DONE
@@ -42,54 +38,21 @@ P0-A5  Calendar/location/offline/AI interfaces   DONE
 P0-A6  Architecture review + ADRs                DONE
 ```
 
-### P0 documents
+Key outcomes:
 
-```text
-FIELD-USER-SPEC.md
-EXCEL-PARITY-MATRIX.md
-FRONTEND-PWA-UX-SPEC.md
-UI-DESIGN-DIRECTION.md
-PRODUCT-VISION.md
-REQUIREMENTS.md
-TENANCY-MODEL.md
-PERMISSION-MATRIX.md
-DATA-MODEL.md
-CALENDAR-ACTIVITY-SPEC.md
-MAPS-LOCATION-SPEC.md
-OFFLINE-SYNC-SPEC.md
-AI-PLANNER-SPEC.md
-ARCHITECTURE.md
-SECURITY-THREAT-MODEL.md
-P0-ARCHITECTURE-REVIEW.md
-adr/0001-monorepo-and-application-stack.md
-adr/0002-workspace-data-isolation-and-routing.md
-adr/0003-offline-first-field-user-sync.md
-```
+- Company → Workspace → Organization Unit/Team → User tenancy is explicit.
+- Role, permission and scope are separated.
+- Workspace data access is routed through an abstraction rather than hard-coded physical D1 assumptions.
+- Customer multi-location, offline sync, provider-independent maps and advisory/explainable AI boundaries are defined.
+- Field User behavior is mapped from the Excel baseline without treating the product as a spreadsheet clone.
 
-### P0 exit gate
-
-- Company / Workspace / Organization Unit terminology frozen — PASS.
-- Role and scope separated — PASS.
-- Field-user behavior mapped from Excel — PASS for architecture stage.
-- Planner/visit/report independent of UI — PASS.
-- Multi-location customer model — PASS.
-- Workspace database routing abstraction — PASS.
-- Shared practitioner identity isolation — PASS.
-- Offline idempotency/conflict boundaries — PASS.
-- Provider-independent maps — PASS.
-- Explainable/advisory AI boundary — PASS.
-- Security/threat baseline — PASS.
-- P1 can begin without known schema-breaking redesign — PASS.
-
-Implementation-level ADR decisions intentionally deferred are listed in `P0-ARCHITECTURE-REVIEW.md`.
+Primary documents include `FIELD-USER-SPEC.md`, `EXCEL-PARITY-MATRIX.md`, `FRONTEND-PWA-UX-SPEC.md`, `UI-DESIGN-DIRECTION.md`, `PRODUCT-VISION.md`, `REQUIREMENTS.md`, `TENANCY-MODEL.md`, `PERMISSION-MATRIX.md`, `DATA-MODEL.md`, `CALENDAR-ACTIVITY-SPEC.md`, `MAPS-LOCATION-SPEC.md`, `OFFLINE-SYNC-SPEC.md`, `AI-PLANNER-SPEC.md`, `ARCHITECTURE.md`, `SECURITY-THREAT-MODEL.md`, `P0-ARCHITECTURE-REVIEW.md` and ADRs under `docs/adr/`.
 
 ---
 
 ## P1 — Authentication + Field User Shell — COMPLETE
 
-Goal: create the first real authenticated PWA shell.
-
-### Internal sequence
+Goal: create the first authenticated, responsive, installable PWA shell.
 
 ```text
 P1-A0  Scaffold repo/tooling + CI                                DONE
@@ -105,367 +68,224 @@ P1-A9  PWA install/static shell foundation                       DONE
 P1-A10 P1 test/security gate                                     DONE
 ```
 
-### P1 completed decisions
+Key outcomes:
 
-- TypeScript/pnpm monorepo scaffolded.
-- React/Vite/Tailwind web shell and Cloudflare Worker/Hono API shell build in CI.
-- Workspace selection and scoped authorization domain types implemented and tested.
-- Authentication framework decision: Better Auth backed by CONTROL_DB/D1.
-- Session identity kept separate from FieldRep OS membership/permission context.
-- Email/password starts with Better Auth scrypt hashing; public production self-sign-up is disabled.
-- Server-side database sessions use secure HttpOnly cookies; no long-lived auth token in browser storage.
-- UUID v4 / `crypto.randomUUID()` selected for durable opaque domain IDs and offline-safe creation.
-- Separate Control Plane and Workspace Plane SQL migrations validate on fresh SQLite databases in CI.
-- `WorkspaceDataRouter` resolves logical control-plane routes to bound D1 stores and verifies physical `workspace_identity` before access.
-- Authorization middleware is fail-closed for missing authentication, permissions, and cross-workspace route access.
-- Responsive RTL shell uses a desktop right navigation rail and mobile bottom navigation with a primary quick-action slot.
-- Jalali presentation utilities use timezone-aware `Intl` Persian calendar formatting behind reusable helpers.
-- Semantic design tokens, visible focus states, minimum touch targets, and reduced-motion behavior form the P1 design-system baseline.
-- Field User page shells cover Home, Calendar, Plan & Report, Customers, Reports, Settings, and Visit Report.
-- Planner provides working List / Calendar / Excel / Map presentation modes over representative field data.
-- Responsive review keeps the mobile List view primary, preserves a high-density horizontally scrollable Excel view, and defers the real map renderer to the provider adapter phase.
-- Installable PWA manifest, application icons and production service-worker registration are implemented.
-- The PWA shell uses network-first navigation fallback and same-origin static asset caching while explicitly bypassing `/api/*` and authenticated business-data caching.
-- Offline domain data, sync queues, conflicts and user/workspace cache isolation remain deferred to P4 by design.
-- P1 test/security gate reviewed auth/session boundaries, permissions, workspace routing, migration validation, PWA caching policy, responsive shell and CI; no known architectural blocker remains for P2.
+- React/Vite/Tailwind frontend and Cloudflare Worker/Hono backend build in CI.
+- Better Auth is the authentication framework decision; FieldRep memberships/permissions remain separate from session identity.
+- Secure HttpOnly cookie sessions are the production direction; no long-lived browser auth token.
+- Control-plane and workspace-plane migrations validate independently.
+- Authorization and workspace routing fail closed.
+- Mobile bottom navigation and desktop right-side navigation are implemented.
+- RTL/Jalali presentation and semantic design tokens form the UI foundation.
+- PWA shell is installable and intentionally does not cache `/api/*` authenticated business traffic.
 
-### P1 implementation documents
-
-- `DESIGN-SYSTEM.md`
-- `P1-A8-RESPONSIVE-VISUAL-REVIEW.md`
-- `P1-A9-PWA-SHELL.md`
-- `P1-A10-TEST-SECURITY-GATE.md`
-- `PAGES-PREVIEW.md`
-- `adr/0004-authentication-session-and-identifier-strategy.md`
-- `migrations/README.md`
-
-### P1 exit gate
-
-- Repository migration validation — PASS.
-- TypeScript typecheck — PASS.
-- Unit tests — PASS.
-- Production build — PASS.
-- Authorization boundaries fail closed — PASS.
-- Workspace data routing has physical identity verification — PASS.
-- PWA does not intentionally cache `/api/*` or authenticated business data — PASS.
-- Remote Cloudflare/D1/Auth deployment — DEFERRED to isolated remote environment, not claimed by P1.
+P1 remote Cloudflare/D1/Auth deployment remained deliberately deferred; phase closure was a code/security architecture gate, not a production deployment claim.
 
 ---
 
-## P2 — Excel Parity / Core Field User Panel — IN PROGRESS
+## P2 — Excel Parity / Core Field User Panel — COMPLETE
 
-Goal: allow a field user to replace the current workbook for core planning/reporting.
+Goal: let a field user perform the core Plan & Report workflow without returning to the legacy workbook for missing core functionality.
 
 ### Internal sequence
 
 ```text
-P2-A1  Executable Excel-parity rules and domain contracts        DONE
-P2-A2  Doctor/customer + route repositories and APIs             DONE
-P2-A3  Planning-cycle / Jalali quarter engine                    DONE
-P2-A4  Planner domain engine + duplicate/frequency/target rules  DONE
-P2-A5  Plan CRUD wired to List/Calendar/Excel views              DONE
-P2-A6  Visit/report actuals + product counters                   DONE
-P2-A7  Visited/Achievement calculations                          DONE
-P2-A8  Daily/weekly/monthly reporting                            DONE
-P2-A9  Initial workbook import/migration path                    COMPATIBILITY GATE
-P2-A10 Excel-parity regression gate                              BLOCKED BY A9 SOURCE CHECK
+P2-A1   Executable Excel-parity rules and domain contracts        DONE
+P2-A2   Doctor/customer + route repositories and APIs             DONE
+P2-A3   Planning-cycle / Jalali quarter engine                    DONE
+P2-A4   Planner domain engine + duplicate/frequency/target rules  DONE
+P2-A5   Plan CRUD wired to List/Calendar/Excel views              DONE
+P2-A6   Visit/report actuals + product counters                   DONE
+P2-A7   Visited/Achievement calculations                          DONE
+P2-A8   Daily/weekly/monthly reporting                            DONE
+P2-A9   Initial workbook import/migration path                    DONE
+P2-A10A Persian calendar correctness hardening                    DONE
+P2-A10B Engine-driven Calendar UI integration                     DONE
+P2-A10C Full Excel-parity regression/closure gate                 DONE
 ```
 
-### P2 completed decisions
+### P2 core decisions
 
-#### P2-A1
+- Plan and Actual Visit are distinct persisted concepts.
+- Planned and Unplanned Actual Visits are supported.
+- Products/Product Calls are separate from visit count.
+- `Visited` is derived from completed Actual Visits, never from spreadsheet summary cells.
+- `Achievement = Visited / Frequency`; zero-frequency records never divide by zero.
+- Daily, Saturday-Friday weekly and Jalali monthly reports project the same Actual Visit facts.
+- Planner duplicate, route, frequency and daily-target rules are executable and tested.
+- List, Calendar and Excel-style planner presentations share the same plan model.
+- Customer records retain clean canonical names; workbook-only combined labels such as `name + Class` are migration aliases, not canonical customer names.
 
-- Planner/visit identifiers and contracts are explicit in the domain layer.
-- Frequency/Achievement semantics are executable and unit tested.
-- Zero-frequency records avoid division by zero and return `not_required`.
-- Daily-target progress is executable and unit tested.
-- Duplicate detection is scoped to workspace + user + customer.
-- Default duplicate policy treats same-day repetition as an error and adjacent-day repetition as a warning.
-- Canonical planner dates use `YYYY-MM-DD`.
-- PWA source/security validation is part of CI and installable PNG icons are present.
+### P2-A9 — real XLSM compatibility result
 
-Implementation record: `P2-A1-EXCEL-PARITY-RULES.md`.
+The exact uploaded XLSM was inspected and verified rather than inferred from historic notes.
 
-#### P2-A2
+Verified structural facts:
 
-- Workspace reference data models doctors, pharmacies and future customer types without redesign.
-- Company/workspace master customers and user-private customers have distinct record scopes.
-- Doctor specialty/class/frequency, routes and multiple locations are persisted explicitly.
-- Workspace/customer/route/location database constraints fail closed.
-- Customer repositories return workspace data plus only the authenticated user's private records.
-- Customer search/filter values are bound and wildcard-safe.
-- Secured customer/route API modules enforce authentication, permission and active-workspace boundaries.
+```text
+Physision rows                    122
+Unique physician names            122
+Calendar verified week blocks      16
+Visible Jalali date headers         95
+Date span                    1405/03/30 → 1405/06/31
+Matched Calendar Plan cells        359
+Unknown Calendar customers           0
+Daily-count mismatches                0
+Traceable Report physician rows     79
+Report route-marker rows             14
+Unknown non-marker Report rows        0
+```
 
-Implementation record: `P2-A2-CUSTOMER-ROUTE-DATA.md`.
+The Calendar uses Saturday→Friday repeated week blocks, two route/session columns where available, seven doctor slots per session, and a daily count row. Friday has only the workbook's final primary column (`M`). Source cell coordinates are preserved for import provenance.
 
-#### P2-A3
+Important compatibility fix discovered during closure:
 
-- Jalali↔canonical conversion is executable and round-trip validated.
-- Quarter boundaries are calculated from the Persian calendar rather than hard-coded UI month tables.
-- Known 1405 quarter boundaries and leap Esfand behavior are unit tested.
-- `planning_cycles` supports Jalali quarters and future custom cycles.
-- Only one active planning cycle is allowed per workspace.
+- `Physision` stores the clean doctor name in `نام پزشک`.
+- Calendar/Report frequently use `Column1`, a combined display label containing name + Class.
+- The importer now preserves that value only as `legacyAliases` and resolves it to the clean canonical customer.
+- Alias collisions fail closed.
 
-Implementation record: `P2-A3-JALALI-PLANNING-CYCLE.md`.
+Workbook `Visited`, `Achievement` and product counters remain reconciliation evidence only and never fabricate Actual Visit history.
 
-#### P2-A4
-
-- One UI-independent planner evaluator combines cycle, duplicate, route, frequency and daily-target checks.
-- Outside-cycle and same-day duplicate conditions are hard errors.
-- Adjacent-day repetition, route mismatch, achieved frequency and target overage are advisory warnings.
-- Evaluation is isolated to the candidate `workspaceId + ownerUserId`, preventing another representative or workspace from affecting duplicate/target decisions.
-
-Implementation record: `P2-A4-PLANNER-DOMAIN-ENGINE.md`.
-
-#### P2-A5
-
-- `plan_entries` persist workspace/owner/cycle/customer/date/route/status/source independently from actual visits.
-- Database triggers fail closed for cycle, customer ownership and workspace-route boundaries.
-- Same-day active customer duplicates are also protected by a database unique index.
-- Plan edits are restricted to owned planned records; cancellation is history-preserving rather than hard deletion.
-- Secured own-plan CRUD API routes use explicit `plans.*.own` permissions and inject authenticated ownership server-side.
-- A cookie-authenticated web HTTP client matches the production API contract.
-- Pages/static preview uses a separate synthetic in-memory model, but List/Calendar/Excel share one mutable plan state and support add/edit/move/cancel interactions with duplicate/target warnings.
-
-Implementation record: `P2-A5-PLAN-CRUD.md`.
-
-#### P2-A6
-
-- Plan and Actual Visit are separate persisted concepts.
-- Actual Visits support both `planned` and `unplanned` sources.
-- A completed Actual can link to an owned Plan and completes that Plan without trusting client ownership fields.
-- Product catalog and `visit_product_calls` support multiple independently counted product calls per Actual Visit.
-- Visit/product/location/plan constraints fail closed across workspace and ownership boundaries.
-- Visit + Product Call persistence uses an atomic workspace batch.
-- The Field User Visit page now demonstrates Plan → Actual, Unplanned Actual, product counters and notes over preview state, while a cookie-authenticated web client matches the secured Worker API.
-
-#### P2-A7
-
-- `Visited` is derived from completed Actual Visit record count, not total Product Calls.
-- Product Call totals remain a separate reporting dimension.
-- `Achievement = Visited / Frequency` is applied from the same canonical visit facts.
-- Remaining visits and `incomplete / achieved / over_achieved / not_required` states are executable and tested.
-- Frequency zero never divides by zero.
-- Owner-scoped visit counters are exposed through a secured API/client path for consistent UI/report calculations.
-
-#### P2-A8
-
-- Daily, Saturday-Friday weekly, Jalali monthly and cycle-style reporting are projections over the same Actual Visit source.
-- Cancelled visits are excluded and duplicate visit IDs are not double-counted.
-- Report summaries include completed visits, unique customers, Planned vs Unplanned Actuals and Product Call totals.
-- Per-customer completed visit totals reconcile with `Visited` for the same range.
-- The Reports UI now switches between daily/weekly/monthly/cycle views and renders actual rows, products and report notes from one reporting projection.
-
-#### P2-A9 — compatibility gate
-
-- XLSX/XLSM extraction reads OOXML directly and never executes VBA/macros.
-- Exact source bytes receive a SHA-256 fingerprint for provenance and idempotency.
-- Legacy `Physision` and `Report` adapters support common English/Persian headers, Jalali dates and Excel serial dates.
-- Import Preview distinguishes errors from warnings and fails closed when source references cannot be reconciled.
-- Workbook `Visited`, `Achievement` and product counters are reconciliation inputs only; they do not fabricate Actual Visit history.
-- `workbook_imports` / `workbook_import_rows` stage normalized data before any operational apply.
-- Exact duplicate workbook fingerprints are rejected per workspace.
-- Calendar-grid plan extraction deliberately remains disabled until the exact source workbook layout is verified.
-- The active File Library did not expose the original XLSM during implementation, so exact compatibility validation and the golden Calendar mapping remain external gate items.
+The raw workbook and customer-identifying data are not committed. `fixtures/p2/legacy-workbook-structure.json` contains only sanitized structural counts/invariants.
 
 Implementation record: `P2-A9-WORKBOOK-IMPORT.md`.
 
-### P2 scope
+### P2-A10 — Persian calendar correctness + UI
 
-- Doctors
-- Routes
-- Specialty/Class/Frequency
-- Excel-style planner
-- Calendar-style planner
-- Mobile/list planner
-- Jalali year/quarter planning
-- Daily target
-- Duplicate detection
-- Products
-- Plan vs actual visit
-- Visit report
-- Visited calculation
-- Achievement calculation
-- Daily/weekly/monthly reports
-- Initial Excel import/migration
+The one-year Excel calendar is not the production date engine.
+
+FieldRep OS now uses one authoritative deterministic Solar Hijri engine in `packages/domain/src/persian-calendar.ts`, pinned to the current Unicode ICU PersianCalendar arithmetic/correction behavior. Planning cycles, import conversion and Calendar UI all delegate to that same engine.
+
+The gate intentionally tested every valid day in the supported range 1300..1600 SH. An initial Borkowski-based implementation was rejected after the exhaustive test found a real one-day divergence at the 1502 correction boundary. The ICU-corrected implementation passes the unchanged regression.
+
+Calendar coverage includes:
+
+- >109,000 Jalali → canonical → Jalali round trips;
+- >109,000 differential checks against current `Intl` Persian calendar;
+- leap/common Esfand boundaries;
+- Saturday-first weekday and Saturday-Friday week bounds;
+- month-grid spillover and continuity;
+- 95 consecutive date/weekday headers from the real XLSM;
+- known current/Nowruz anchors.
+
+The actual Field User Calendar UI now renders from `buildPersianMonthGrid()` rather than hard-coded blank offsets or 31-day arrays. It supports month navigation, Today, spillover days, selected day, Friday state and activity overlays using a modern enterprise/pharma visual direction.
+
+Official/public/religious holidays are a separate versioned annual dataset. University of Tehran Calendar Center is the primary official annual reference; Time.ir is an independent validation/reference source. Holiday datasets never modify the civil conversion algorithm.
+
+Implementation record: `P2-A10-CALENDAR-CORRECTNESS.md`.
+
+### P2 dedicated regression gate
+
+CI now has an explicit `Validate P2 Excel parity` step (`pnpm validate:p2-parity`) in addition to the full test suite.
+
+The sanitized golden structure asserts the verified workbook shape/counts. Focused regression tests cover the domain rules, calendar engine, workbook adapter/importer, repositories, secured APIs and preview UI projections.
+
+P2 closure gate on branch `feat/p2-excel-parity-rules`:
+
+```text
+SQL migration validation           PASS
+PWA security validation            PASS
+Legacy XLSM extractor validation   PASS
+P2 Excel-parity focused gate       PASS
+TypeScript                         PASS
+Full unit suite                    PASS
+Production build                   PASS
+```
+
+No production Cloudflare/D1 data migration or deployment is claimed by P2; that is an isolated environment/deployment operation and is not required for the Excel-parity code gate.
 
 Primary acceptance source: `EXCEL-PARITY-MATRIX.md`.
 
-P2 closes only when the agreed core Plan & Report workflow can be completed without returning to the workbook for missing core functionality.
-
-### Current P2 external dependency
-
-The exact legacy XLSM/XLSX binary is required only for the final P2-A9 compatibility check and P2-A10 golden regression fixture. Until that file is available, code-level development remains green but P2 is not closed.
-
 ---
 
-## P3 — Operational Calendar & Activities
+## P3 — Operational Calendar & Activities — NEXT
+
+Goal: turn the correct civil calendar into the complete operational work timeline used by a field representative and company/workspace calendar policy.
+
+Planned sequence:
+
+```text
+P3-A1  Activity/calendar domain contracts + persistence          NEXT
+P3-A2  Secured activity APIs + scope/ownership rules
+P3-A3  Working-week policy + public holiday dataset composition
+P3-A4  Company/workspace closures and overrides
+P3-A5  Leave workflow foundation
+P3-A6  Business trip / mission model
+P3-A7  Internal meetings + company programs + doctor programs
+P3-A8  Month/week/day/agenda projections and UI
+P3-A9  Planner/calendar conflict engine
+P3-A10 P3 regression/security closure gate
+```
 
 Scope:
 
-- Approved Jalali month UI
-- Week/day/agenda views
-- Public holidays
-- Company/workspace closures
-- Working weekday rules
-- Leave
-- Business trip / mission
-- Internal meetings
-- Company programs
-- Doctor programs
-- Planning conflict engine
+- approved Jalali month UI plus week/day/agenda views;
+- verified public/religious holidays;
+- company/workspace closures;
+- configurable working weekdays;
+- leave;
+- business trip / mission;
+- internal meetings;
+- company programs;
+- doctor programs/events;
+- planning conflict engine.
+
+Activities must not incorrectly increment doctor visit Frequency/Visited/Achievement.
 
 ---
 
 ## P4 — Offline PWA & Synchronization
 
-Scope:
-
-- Installable PWA
-- IndexedDB
-- Authorized offline customer cache
-- Offline plan/report capture
-- Sync queue
-- Retry states
-- Conflict handling
-- User/workspace local-data isolation
+Scope: IndexedDB, authorized offline customer/plan cache, offline plan/report capture, sync queue, retry/conflict states, and strict user/workspace local-data isolation.
 
 ---
 
 ## P5 — Maps, Locations & Routing
 
-Scope:
-
-- Multiple locations per customer
-- Location picker/editor
-- Provider-independent map interface
-- Neshan adapter first
-- Google adapter where required
-- Search/geocode/reverse-geocode
-- Map planner view
-- Nearby customers
-- Distance matrix
-- Route optimization
-- External navigation
+Scope: multiple customer locations, provider-independent map adapter, Neshan first, Google where required, geocode/reverse/search, Map Planner, nearby customers, distance matrix, route optimization and external navigation.
 
 ---
 
 ## P6 — Visit Location Verification
 
-Scope:
-
-- Check-in location capture
-- GPS accuracy
-- Selected target location
-- Distance/geofence
-- `verified / nearby / unverified / outside`
-- Offline capture evidence
-- Capture time vs sync time
-- Company/workspace feature toggle
+Scope: check-in coordinates/accuracy, selected target, geofence distance, `verified / nearby / unverified / outside`, offline evidence, capture-vs-sync timestamps and company/workspace feature toggle.
 
 ---
 
 ## P7 — AI-Assisted Planning
 
-Scope:
-
-- Explainable recommendation scoring
-- Class/frequency/cycle urgency
-- Last visit/missed visits
-- Calendar constraints
-- Leave/trip/meeting constraints
-- Location/route efficiency
-- Doctor availability foundation
-- Next-day and next-week suggestions
-- Accept/reject/edit workflow
-- Structured reasons
-- Optional LLM explanation layer
-
-AI must not silently publish an official plan.
+Scope: explainable deterministic recommendation scoring using frequency/class/cycle urgency, last/missed visits, calendar constraints, location/route efficiency and later doctor availability; accept/reject/edit workflow; optional LLM explanation layer. AI must not silently publish an official plan.
 
 ---
 
 ## P8 — Supervisor Workspace
 
-Scope:
-
-- Team dashboard
-- Assigned-user drill-down
-- Daily/weekly/monthly/cycle reports
-- Coverage/frequency
-- Activities
-- Visit-verification summaries
-- Permission-scoped exports
+Scope: team dashboard, assigned-user drill-down, reporting, coverage/frequency, activities, visit-verification summaries and permission-scoped exports.
 
 ---
 
 ## P9 — Company & Workspace Administration
 
-Scope:
-
-- Company/workspace users
-- Workspace admins
-- Supervisors
-- Teams/organization units
-- Master doctors/pharmacies/products/routes
-- Import preview and validation
-- Working calendar settings
-- Holidays/events
-- Targets
-- Feature settings
-- Reporting
-- Audit access
+Scope: users/admins/supervisors, teams/org units, master customers/products/routes, imports, working calendar, holidays/events, targets, feature settings, reporting and audit access.
 
 ---
 
 ## P10 — Platform Administration
 
-Scope:
-
-- Companies/workspaces
-- User/admin/supervisor limits
-- Feature entitlements
-- Global settings
-- Workspace database routing registry
-- Security/audit center
-- Platform analytics
-- Audited support/data-access workflows
+Scope: companies/workspaces, limits/entitlements, global settings, workspace database routing registry, security/audit center, platform analytics and audited support/data-access workflows.
 
 ---
 
 ## P11 — Dataset Catalog / Vault / Allocation
 
-Scope:
-
-- Imported/purchased/curated datasets
-- Raw source archive
-- Provenance
-- Versions
-- Normalization
-- Duplicate review
-- Practitioner matching
-- Split/filter/build dataset
-- Snapshot/live assignment
-- Company/workspace licensing/entitlement
-- Export center
+Scope: imported/purchased/curated datasets, raw archive, provenance/versioning, normalization/dedup review, practitioner matching, dataset splitting/building, snapshot/live assignment and export/licensing controls.
 
 ---
 
 ## P12 — Production Hardening & Scale
 
-Scope:
-
-- Security review
-- Rate limiting
-- Privileged MFA options
-- Backup/restore
-- Disaster recovery
-- Observability
-- Performance/load tests
-- Abuse controls
-- Data retention workflows
-- Full E2E regression
-- Release/runbook process
+Scope: security review, rate limiting, privileged MFA, backup/restore/DR, observability, performance/load tests, abuse controls, retention workflows, full E2E regression and release/runbook process.
 
 ---
 
@@ -481,5 +301,5 @@ Before phase closure:
 6. Relevant integration/E2E tests pass.
 7. Tenant/workspace isolation tests pass where applicable.
 8. No unresolved critical/high defects.
-9. Documentation updated.
-10. Repository clean and closure recorded.
+9. Documentation is current.
+10. Repository/PR closure state is recorded.
