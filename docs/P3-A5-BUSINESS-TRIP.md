@@ -2,7 +2,7 @@
 
 **Phase:** P3 — Operational Calendar & Activities  
 **Work item:** P3-A5  
-**Status:** implementation pending final CI gate  
+**Status:** COMPLETE  
 **Baseline:** 2026-09-05
 
 ## Purpose
@@ -82,6 +82,8 @@ Own API operations are:
 
 Server-side authentication injects the user/workspace identity. Payload fields cannot grant approval or set the decision actor.
 
+Semantic validation also runs at the API boundary before persistence. Invalid destination intervals, duplicate destination sequencing or malformed trip ranges are rejected before the repository write path.
+
 ## KPI invariant
 
 Business Trips never create Visit/Frequency/Achievement/Product Call facts. Database triggers reject `counts_as_visit != 0` for business-trip Calendar projections.
@@ -89,3 +91,15 @@ Business Trips never create Visit/Frequency/Achievement/Product Call facts. Data
 ## Future dependencies
 
 P5 may enrich destinations with canonical location IDs/coordinates and route-provider references. P7 can use destination sequence, city and timing as deterministic planning inputs without changing this workflow model.
+
+## Exit gate
+
+```text
+SQL migration validation           PASS
+PWA security validation            PASS
+Legacy XLSM extractor validation   PASS
+P2 regression gate                 PASS
+TypeScript                         PASS
+Full unit suite                    PASS
+Production build                   PASS
+```
