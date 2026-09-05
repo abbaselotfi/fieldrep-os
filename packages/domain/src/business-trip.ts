@@ -98,7 +98,8 @@ export function validateBusinessTrip(trip: BusinessTrip): void {
     }
   }
 
-  if (trip.status === 'approved' || trip.status === 'rejected') {
+  const hasDecision = trip.status === 'approved' || trip.status === 'rejected' || trip.status === 'completed'
+  if (hasDecision) {
     if (trip.decidedByUserId === null || trip.decidedAt === null) {
       throw new RangeError('decided business trip requires audit fields')
     }
@@ -144,12 +145,9 @@ export function cancelOwnBusinessTrip(trip: BusinessTrip): BusinessTrip {
 export function completeBusinessTrip(trip: BusinessTrip): BusinessTrip {
   validateBusinessTrip(trip)
   if (trip.status !== 'approved') throw new Error('only approved business trip can be completed')
-  return {
-    ...trip,
-    status: 'completed',
-    decidedByUserId: null,
-    decidedAt: null,
-  }
+  const completed: BusinessTrip = { ...trip, status: 'completed' }
+  validateBusinessTrip(completed)
+  return completed
 }
 
 export function businessTripBlocksPlanning(trip: BusinessTrip): boolean {
