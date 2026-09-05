@@ -1,6 +1,17 @@
-const SHELL_CACHE = 'fieldrep-shell-v1'
-const RUNTIME_CACHE = 'fieldrep-runtime-v1'
-const CORE_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icons/app-icon-192.png', '/icons/app-icon-512.png']
+const SHELL_CACHE = 'fieldrep-shell-v2'
+const RUNTIME_CACHE = 'fieldrep-runtime-v2'
+const scopeUrl = new URL(self.registration.scope)
+const basePath = scopeUrl.pathname.endsWith('/') ? scopeUrl.pathname : `${scopeUrl.pathname}/`
+const scopedPath = (relativePath) => new URL(relativePath, self.registration.scope).pathname
+const apiPrefix = scopedPath('api/')
+const indexPath = scopedPath('index.html')
+const CORE_ASSETS = [
+  basePath,
+  indexPath,
+  scopedPath('manifest.webmanifest'),
+  scopedPath('icons/app-icon-192.png'),
+  scopedPath('icons/app-icon-512.png'),
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(CORE_ASSETS)))
@@ -26,17 +37,18 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return
 
   const url = new URL(request.url)
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
+  if (url.origin !== self.location.origin || url.pathname.startsWith(apiPrefix)) return
 
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
+          if (!response.ok) throw new Error(`Navigation request failed with ${response.status}`)
           const copy = response.clone()
           caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy))
           return response
         })
-        .catch(async () => (await caches.match(request)) ?? (await caches.match('/index.html')) ?? Response.error()),
+        .catch(async () => (await caches.match(request)) ?? (await caches.match(indexPath)) ?? Response.error()),
     )
     return
   }
