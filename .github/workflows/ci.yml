@@ -38,6 +38,9 @@ jobs:
       - name: Validate SQL migrations
         run: pnpm validate:migrations
 
+      - name: Validate PWA shell/security boundary
+        run: pnpm validate:pwa
+
       - name: Typecheck
         run: pnpm typecheck
 

@@ -4,6 +4,13 @@ export type CompanyId = string
 export type WorkspaceId = string
 export type OrganizationUnitId = string
 export type RoleId = string
+export type CustomerId = string
+export type RouteId = string
+export type ProductId = string
+export type LocationId = string
+export type PlanEntryId = string
+export type VisitId = string
+export type PlanningCycleId = string
 export type RoleKey =
   | 'platform_admin'
   | 'company_admin'
