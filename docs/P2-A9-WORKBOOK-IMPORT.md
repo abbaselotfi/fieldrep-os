@@ -2,193 +2,198 @@
 
 **Phase:** P2 — Excel Parity / Core Field User Panel  
 **Work item:** P2-A9  
-**Implementation status:** CODE COMPLETE; REAL-WORKBOOK COMPATIBILITY VERIFICATION PENDING  
+**Status:** COMPLETE  
+**Real-workbook compatibility gate:** PASS  
 **Baseline:** 2026-09-05
 
 ---
 
 ## 1. Purpose
 
-P2-A9 provides a controlled migration path from the legacy Plan & Report Excel workbook into FieldRep OS.
-
-The import path is deliberately not a blind spreadsheet-to-database copy. The workbook contains both source facts and derived/display values, so migration must preserve traceability and avoid converting spreadsheet summaries into fabricated operational history.
-
-The pipeline is:
+P2-A9 provides a controlled migration path from the legacy Plan & Report XLSM workbook into FieldRep OS without treating spreadsheet display/summary values as authoritative operational history.
 
 ```text
-XLSX/XLSM file
+XLSX/XLSM
 → non-executing OOXML extraction
-→ legacy workbook adapter
-→ normalized import snapshot
-→ validation / reconciliation preview
-→ staged import manifest + rows
-→ explicit apply step after compatibility review
+→ legacy-workbook adapter
+→ normalized validation/reconciliation preview
+→ staged import manifest/rows
+→ explicit apply stage
 ```
 
-No production or remote Cloudflare database is required for the current implementation stage.
+The source XLSM is private customer data and is **not** committed to the public repository. Regression fixtures contain only synthetic/sanitized structures.
 
 ---
 
-## 2. Macro and File Safety
+## 2. File safety and provenance
 
-`scripts/extract-legacy-workbook.py` reads the OOXML ZIP/XML container directly using the Python standard library.
+`scripts/extract-legacy-workbook.py` reads the OOXML ZIP/XML container directly with the Python standard library.
 
-It supports:
-
-```text
-.xlsx
-.xlsm
-```
-
-It does **not**:
+It does not:
 
 - execute VBA/macros;
-- load Excel automation/COM;
-- run workbook formulas;
+- invoke Excel/COM;
+- execute formulas;
 - follow external workbook links;
 - execute embedded objects.
 
-Formula cells expose only the cached value already stored inside the workbook XML.
+CI also constructs a synthetic `.xlsm` containing a dummy `vbaProject.bin` and verifies that extraction succeeds without executing the payload.
 
-The extractor records:
+Every import records:
 
 - source filename;
 - SHA-256 of the exact source bytes;
 - parser version;
-- worksheet names;
-- original Excel row numbers;
-- extracted cell values.
-
-This creates a deterministic source fingerprint and preserves provenance.
+- original sheet/row/cell provenance.
 
 ---
 
-## 3. Legacy Workbook Adapter
+## 3. Verified real workbook inventory
 
-`adaptLegacyWorkbookTabular()` converts extracted sheet data into the P2 import contracts.
+The uploaded production-reference workbook was inspected directly through OOXML.
 
-Current supported reference-data mapping includes the legacy `Physision` sheet and common English/Persian header aliases for:
-
-- physician/customer name;
-- specialty;
-- class;
-- route;
-- address;
-- frequency;
-- visited value for reconciliation only;
-- workbook achievement value for reconciliation only;
-- product counters where product columns can be recognized.
-
-Current report mapping includes:
-
-- report/visit date;
-- physician/customer;
-- product(s);
-- visit report / notes.
-
-Date conversion supports:
-
-- canonical `YYYY-MM-DD`;
-- Jalali strings such as `1405/06/15`;
-- numeric Excel serial dates.
-
-Multiple products in one report cell can be separated by common delimiters.
-
----
-
-## 4. Historical Fact Policy
-
-The workbook may contain values such as:
+Verified sheets include:
 
 ```text
-Visited
-Achievement
-Toujeo counter
-Soliqua counter
-other product counters
+Calendar
+Physision
+Report
+Helper
+Lists_Helper
+Report_Helper
 ```
 
-These values are not automatically authoritative historical facts.
+The compatibility test deliberately records only structural/aggregate information in source control; physician names and addresses are not copied into GitHub.
 
-FieldRep OS uses the following rule:
+### Physision
+
+The real source uses Persian/English mixed headers, including historical spellings/typos such as:
+
+```text
+نام پزشک
+تخصص
+Class
+مسیر
+آدرس
+frequency
+Visited
+% Achivment
+Soliqua
+Toujeo
+```
+
+The adapter normalizes Persian/Arabic character variants and preserves workspace-defined Class labels. Class is **not** constrained to A/B/C because the source legitimately contains additional labels and half-weight variants.
+
+A workbook-only holiday pseudo-record is detected and excluded from customer import.
+
+### Report
+
+Verified behavior:
+
+- the date is present only on the first row of a day's block;
+- following report rows inherit/carry forward that date;
+- route names can appear as marker rows and must not become customers;
+- all real physician report rows reconcile to the physician source after marker filtering;
+- Jalali string dates and Excel serial dates are supported;
+- product and visit-report text are retained when traceable.
+
+### Calendar
+
+The exact formatted grid is now verified, not guessed.
+
+Each repeated week block uses seven day pairs:
+
+```text
+A:B  Saturday
+C:D  Sunday
+E:F  Monday
+G:H  Tuesday
+I:J  Wednesday
+K:L  Thursday
+M:N  Friday
+```
+
+For each day:
+
+- the pair shares the date header;
+- the two columns represent two operational route/session slots;
+- each session has its own route cell;
+- each session has up to seven physician rows;
+- the day has a stored total/count row;
+- source-cell provenance such as `A5` / `B5` is preserved so two sessions on the same date never collapse into one import identity.
+
+The real workbook's stored daily counts reconcile with the observed populated slot cells. Holiday sentinel slots are excluded from Plan import. Real populated physician slots reconcile with the physician source.
+
+Plan product association is intentionally left empty unless explicitly traceable from source data; visual cell styling is not treated as evidence.
+
+---
+
+## 4. Historical fact policy
+
+FieldRep OS canonical rules remain:
 
 ```text
 Visited = count(completed Actual Visit records in the relevant range)
 Achievement = Visited / Frequency
 ```
 
-Therefore:
+Therefore workbook summary cells are reconciliation evidence only:
 
-- workbook `Visited` is used for reconciliation;
-- workbook `Achievement` is recalculated, not imported as an authoritative value;
+- `Visited` is compared with traceable Report rows;
+- `Achievement` is recomputed;
 - product counters are retained for reconciliation;
-- **no Actual Visit is fabricated from a product counter or Visited cell**;
-- traceable report rows are the preferred source for historical Actual Visits.
+- no Actual Visit is fabricated from `Visited`, Achievement or product counters.
 
-If workbook summary values disagree with traceable Report rows, the import preview produces warnings instead of silently reconciling the mismatch.
+If summary values and traceable facts disagree, preview produces warnings rather than manufacturing records.
 
 ---
 
-## 5. Import Preview and Validation
+## 5. Validation and normalization
 
-`previewWorkbookImport()` normalizes the extracted snapshot into reviewable entities:
+`previewWorkbookImport()` produces reviewable normalized entities:
 
 - routes;
 - customers;
 - products;
-- visits;
-- plans when a verified plan mapping is available.
+- traceable Actual Visits;
+- verified Calendar Plans.
 
-Validation currently covers, among other cases:
+Validation includes:
 
 - missing physician/customer name;
 - invalid frequency;
-- unknown class;
 - missing route;
 - duplicate normalized physician rows;
-- invalid report date;
-- report customer absent from the physician/customer source;
-- workbook Visited vs traceable report-count mismatch;
-- non-authoritative Achievement values;
-- product counters that cannot independently prove historical Actual Visits.
+- invalid report/plan date;
+- unknown report/plan customer;
+- workbook Visited vs traceable Report mismatch;
+- non-authoritative Achievement warning;
+- untraceable product-counter warning.
 
-Preview result contains:
+Persian text normalization handles Arabic/Persian Yeh/Kaf variants and zero-width joiner differences before natural-key comparison.
 
-```text
-warnings
-errors
-canApply
-entity counts
-normalized payloads
-source provenance
-```
-
-Any validation error makes `canApply = false`.
+Class labels are treated as workspace reference data and preserved rather than coerced to a platform enum.
 
 ---
 
-## 6. Staging / Idempotency
+## 6. Staging and idempotency
 
-Migration `0006_workbook_imports.sql` adds staging tables:
+Migration `0006_workbook_imports.sql` adds:
 
 ```text
 workbook_imports
 workbook_import_rows
 ```
 
-`workbook_imports` stores the source manifest and status.
+Safeguards:
 
-`workbook_import_rows` stores normalized review rows, actions, payload JSON, issue JSON and source row coordinates.
-
-Important safeguards:
-
-- unique `(workspace_id, source_sha256)` prevents accidental repeat import of the same exact workbook;
-- workspace-bound triggers fail closed on cross-workspace import rows;
+- unique `(workspace_id, source_sha256)` prevents accidental exact re-import;
 - staging is separate from operational customer/plan/visit tables;
-- manifest + staged rows are persisted through an atomic workspace batch;
-- source/parser fingerprints remain available for audit and troubleshooting.
+- rows carry sheet/row/entity/action/natural-key/payload/issues provenance;
+- workspace-bound triggers fail closed on cross-workspace staging;
+- manifest + rows are written through the atomic workspace batch abstraction.
 
-The staging lifecycle reserves:
+Lifecycle states reserve:
 
 ```text
 previewed
@@ -199,111 +204,51 @@ rejected
 failed
 ```
 
-P2-A9 currently stops before an unverified real-workbook apply operation.
+The first real operational apply remains a deployment/data-operation concern; P2-A9 establishes and validates the migration path without touching production Cloudflare data.
 
 ---
 
-## 7. Calendar / Plan Mapping Safety
+## 7. Regression coverage
 
-The legacy workbook `Calendar` sheet is a formatted planning grid rather than a simple tabular source.
+Automated tests now cover:
 
-Although the historical workbook layout is documented at a high level, the exact current XLSM binary is not available in the active File Library during this implementation run.
-
-For this reason the adapter intentionally emits:
-
-```text
-calendar_present:plan_cell_mapping_requires_verified_workbook_layout
-```
-
-and does **not** guess Calendar plan cells.
-
-This is intentional fail-safe behavior. The final Calendar adapter must be verified against the exact workbook file before historical plan rows are accepted.
-
----
-
-## 8. Real Workbook Compatibility Gate
-
-Code-level P2-A9 is complete when all repository gates pass.
-
-The remaining external compatibility check requires the exact legacy XLSM/XLSX file to be available and consists of:
-
-1. Run the non-executing extractor against the source workbook.
-2. Confirm expected sheet inventory.
-3. Verify `Physision` header/column mapping.
-4. Verify `Report` mapping and date/product parsing.
-5. Reconcile source counts against the workbook UI/macros.
-6. Inspect all adapter diagnostics.
-7. Verify exact `Calendar` cell/block layout.
-8. Add the verified Calendar plan adapter and golden regression fixture.
-9. Confirm re-import fingerprint/idempotency behavior.
-10. Keep the first real apply operation isolated from production.
-
-Until this gate is performed, the importer must not claim exact compatibility with every cell of the current XLSM.
-
----
-
-## 9. Security and Tenant Boundary
-
-Import persistence is workspace-bound.
-
-The architecture assumes the eventual import API will also require explicit import permissions and will inject authenticated actor/workspace identity server-side.
-
-The source workbook itself must not be treated as authorization evidence. A row naming another user, workspace or company never expands the caller's scope.
-
-Raw source-file retention, when enabled later through R2/Data Vault, must preserve tenant provenance and follow the platform dataset/import governance rules.
-
----
-
-## 10. Tests / Engineering Gate
-
-P2-A9 currently has automated tests for:
-
-- normalization of physician, route and product data;
+- real workbook header spellings/shape using sanitized fixtures;
+- Persian-character normalization;
+- non-A/B/C class preservation;
+- holiday pseudo-customer exclusion;
+- Report date carry-forward;
+- route-marker exclusion;
+- Jalali and Excel-serial date conversion;
 - traceable Report → Actual Visit conversion;
-- no fabrication from Visited/product counters;
-- Achievement recomputation policy;
-- unknown-customer fail-closed behavior;
-- duplicate physician handling;
+- no fabrication from summary/product counters;
+- verified two-session Calendar day layout;
+- seven physician slots per session;
+- Saturday→Friday week layout;
+- source-cell Plan provenance;
+- holiday Calendar sentinel exclusion;
+- daily-count reconciliation;
 - source SHA-256 validation;
-- import manifest/row atomic staging;
-- duplicate source fingerprint protection;
-- Jalali report-date conversion;
-- Excel serial-date conversion;
-- multi-product report parsing;
-- missing-sheet diagnostics;
-- Calendar mapping remaining disabled until verified.
+- staging atomicity and duplicate-fingerprint protection.
 
-Repository gate after implementation:
+Latest compatibility branch gate:
 
 ```text
-SQL migration validation   PASS
-PWA security validation    PASS
-TypeScript typecheck       PASS
-Unit tests                 PASS
-Production build           PASS
+SQL migration validation          PASS
+PWA security validation           PASS
+Legacy XLSM extractor validation  PASS
+TypeScript typecheck              PASS
+Unit tests                        PASS
+Production build                  PASS
 ```
+
+Both CI executions for the real-workbook compatibility commit completed successfully.
 
 ---
 
-## 11. P2-A9 Exit Status
+## 8. P2-A9 exit decision
 
-### Complete without user action
+**P2-A9 is CLOSED / DONE.**
 
-- Safe XLSX/XLSM extraction architecture.
-- No macro execution.
-- SHA-256 provenance.
-- Legacy physician/report adapter.
-- Jalali/Excel date conversion.
-- Preview/validation engine.
-- Visited/Achievement reconciliation policy.
-- Staging schema and repository.
-- Import idempotency foundation.
-- Automated tests and CI gate.
+The exact uploaded workbook has now been used to verify the migration layout. The remaining P2 work is no longer blocked on workbook availability.
 
-### Pending exact source workbook
-
-- Exact compatibility verification against the user's current XLSM binary.
-- Exact Calendar grid/cell mapping.
-- Golden regression fixture derived from that workbook.
-
-The pending items are compatibility verification, not a redesign of the importer architecture.
+Calendar *date correctness* is deliberately promoted into P2-A10 hardening because it is a higher-order requirement than merely reproducing the workbook's one-year layout: FieldRep OS must remain correct across years, leap years, weekday alignment and official holiday datasets without depending on the workbook's hard-coded annual calendar.
