@@ -4,7 +4,7 @@
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** COMPLETE — test/security gate passed  
 **P2 status:** IN PROGRESS  
-**Current work item:** P2-A4 — Planner domain engine + duplicate/frequency/target rules
+**Current work item:** P2-A6 — Visit/report actuals + product counters
 
 ## Product priority
 
@@ -122,8 +122,7 @@ P1-A10 P1 test/security gate                                     DONE
 - Jalali presentation utilities use timezone-aware `Intl` Persian calendar formatting behind reusable helpers.
 - Semantic design tokens, visible focus states, minimum touch targets, and reduced-motion behavior form the P1 design-system baseline.
 - Field User page shells cover Home, Calendar, Plan & Report, Customers, Reports, Settings, and Visit Report.
-- Planner provides working List / Calendar / Excel / Map presentation modes over one representative field dataset.
-- Representative fixtures cover doctors, pharmacy/clinic records, classes, frequencies, routes, multi-location customers, calendar activities, reports and AI-preview reasons without using production/company data.
+- Planner provides working List / Calendar / Excel / Map presentation modes over representative field data.
 - Responsive review keeps the mobile List view primary, preserves a high-density horizontally scrollable Excel view, and defers the real map renderer to the provider adapter phase.
 - Installable PWA manifest, application icons and production service-worker registration are implemented.
 - The PWA shell uses network-first navigation fallback and same-origin static asset caching while explicitly bypassing `/api/*` and authenticated business-data caching.
@@ -163,9 +162,9 @@ Goal: allow a field user to replace the current workbook for core planning/repor
 P2-A1  Executable Excel-parity rules and domain contracts        DONE
 P2-A2  Doctor/customer + route repositories and APIs             DONE
 P2-A3  Planning-cycle / Jalali quarter engine                    DONE
-P2-A4  Planner domain engine + duplicate/frequency/target rules  CURRENT
-P2-A5  Plan CRUD wired to List/Calendar/Excel views
-P2-A6  Visit/report actuals + product counters
+P2-A4  Planner domain engine + duplicate/frequency/target rules  DONE
+P2-A5  Plan CRUD wired to List/Calendar/Excel views              DONE
+P2-A6  Visit/report actuals + product counters                   CURRENT
 P2-A7  Visited/Achievement calculations
 P2-A8  Daily/weekly/monthly reporting
 P2-A9  Initial workbook import/migration path
@@ -189,7 +188,7 @@ Implementation record: `P2-A1-EXCEL-PARITY-RULES.md`.
 
 #### P2-A2
 
-- Workspace reference data now models doctors, pharmacies and future customer types without redesign.
+- Workspace reference data models doctors, pharmacies and future customer types without redesign.
 - Company/workspace master customers and user-private customers have distinct record scopes.
 - Doctor specialty/class/frequency, routes and multiple locations are persisted explicitly.
 - Workspace/customer/route/location database constraints fail closed.
@@ -202,12 +201,33 @@ Implementation record: `P2-A2-CUSTOMER-ROUTE-DATA.md`.
 #### P2-A3
 
 - Jalali↔canonical conversion is executable and round-trip validated.
-- Quarter boundaries are calculated from the Persian calendar rather than hard-coded month tables in UI.
+- Quarter boundaries are calculated from the Persian calendar rather than hard-coded UI month tables.
 - Known 1405 quarter boundaries and leap Esfand behavior are unit tested.
 - `planning_cycles` supports Jalali quarters and future custom cycles.
 - Only one active planning cycle is allowed per workspace.
 
 Implementation record: `P2-A3-JALALI-PLANNING-CYCLE.md`.
+
+#### P2-A4
+
+- One UI-independent planner evaluator combines cycle, duplicate, route, frequency and daily-target checks.
+- Outside-cycle and same-day duplicate conditions are hard errors.
+- Adjacent-day repetition, route mismatch, achieved frequency and target overage are advisory warnings.
+- Evaluation is isolated to the candidate `workspaceId + ownerUserId`, preventing another representative or workspace from affecting duplicate/target decisions.
+
+Implementation record: `P2-A4-PLANNER-DOMAIN-ENGINE.md`.
+
+#### P2-A5
+
+- `plan_entries` persist workspace/owner/cycle/customer/date/route/status/source independently from actual visits.
+- Database triggers fail closed for cycle, customer ownership and workspace-route boundaries.
+- Same-day active customer duplicates are also protected by a database unique index.
+- Plan edits are restricted to owned planned records; cancellation is history-preserving rather than hard deletion.
+- Secured own-plan CRUD API routes use explicit `plans.*.own` permissions and inject authenticated ownership server-side.
+- A cookie-authenticated web HTTP client matches the production API contract.
+- Pages/static preview uses a separate synthetic in-memory model, but List/Calendar/Excel now share one mutable plan state and support add/edit/move/cancel interactions with duplicate/target warnings.
+
+Implementation record: `P2-A5-PLAN-CRUD.md`.
 
 ### P2 scope
 
