@@ -26,6 +26,11 @@ export const FIELD_USER_PERMISSIONS = {
   leaveCreateOwn: 'leave.create.own',
   leaveRequestOwn: 'leave.request.own',
   leaveCancelOwn: 'leave.cancel.own',
+  businessTripReadOwn: 'business_trip.read.own',
+  businessTripCreateOwn: 'business_trip.create.own',
+  businessTripRequestOwn: 'business_trip.request.own',
+  businessTripCancelOwn: 'business_trip.cancel.own',
+  businessTripCompleteOwn: 'business_trip.complete.own',
   settingsUpdateOwn: 'settings.update.own',
 } as const satisfies Record<string, PermissionKey>
 
