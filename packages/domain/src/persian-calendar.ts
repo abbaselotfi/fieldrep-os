@@ -1,13 +1,16 @@
 /**
  * Deterministic Persian (Solar Hijri/Jalali) calendar core for FieldRep OS.
  *
- * Conversion math is adapted from the Borkowski algorithm implementation in
- * jalaali-js (MIT). FieldRep OS intentionally supports 1300..1600 SH, which is
- * inside the range where that implementation and ECMAScript Intl Persian
- * calendar agree. See THIRD_PARTY_NOTICES.md and docs/P2-A10-CALENDAR-CORRECTNESS.md.
+ * The civil-date arithmetic is pinned to the current Unicode ICU PersianCalendar
+ * 33-year-cycle implementation, including ICU's explicit astronomical leap
+ * corrections. This avoids relying on the browser/OS ICU version at runtime while
+ * still allowing exhaustive differential tests against ECMAScript Intl.
  *
- * IMPORTANT: official/religious holidays are data, not calendar arithmetic.
- * They must never be derived here from a tabular lunar-calendar approximation.
+ * The official Iranian calendar is ultimately astronomical. Annual official
+ * calendar/event publications remain a separate versioned data layer and are
+ * never inferred from religious/lunar arithmetic here.
+ *
+ * See THIRD_PARTY_NOTICES.md and docs/P2-A10-CALENDAR-CORRECTNESS.md.
  */
 
 export interface PersianDateParts {
@@ -55,39 +58,133 @@ export interface PersianMonthGrid {
 }
 
 const DAY_MS = 86_400_000
+const PERSIAN_EPOCH_JDN = 1_948_320
 
-// Borkowski break years used by jalaali-js. The FieldRep-supported range
-// (1300..1600) sits well inside these limits.
-const BREAKS = [
-  -61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181,
-  1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178,
-] as const
-const BORKOWSKI_MIN_YEAR = BREAKS[0]
-const BORKOWSKI_MAX_YEAR = 3177
-
-interface JalCalCore {
-  gy: number
-  march: number
-  jump: number
-  n: number
-}
+/**
+ * ICU's current arithmetic calendar includes explicit non-leap correction years
+ * where the simple 33-year rule would otherwise disagree with the astronomical
+ * Persian calendar. FieldRep's supported range needs 1502; 1601 is retained as
+ * the immediate boundary correction so conversion around 1600 remains stable.
+ *
+ * Source: Unicode ICU PersianCalendar.java, current main branch at implementation
+ * time. Keep this list/version under regression review when ICU changes.
+ */
+const ICU_NON_LEAP_CORRECTIONS = new Set<number>([
+  1502,
+  1601,
+  1634,
+  1667,
+  1700,
+  1733,
+  1766,
+  1799,
+  1832,
+  1865,
+  1898,
+  1931,
+  1964,
+  1997,
+  2030,
+  2059,
+  2063,
+  2096,
+  2129,
+  2158,
+  2162,
+  2191,
+  2195,
+  2224,
+  2228,
+  2257,
+  2261,
+  2290,
+  2294,
+  2323,
+  2327,
+  2356,
+  2360,
+  2389,
+  2393,
+  2422,
+  2426,
+  2455,
+  2459,
+  2488,
+  2492,
+  2521,
+  2525,
+  2554,
+  2558,
+  2587,
+  2591,
+  2620,
+  2624,
+  2653,
+  2657,
+  2686,
+  2690,
+  2719,
+  2723,
+  2748,
+  2752,
+  2756,
+  2781,
+  2785,
+  2789,
+  2818,
+  2822,
+  2847,
+  2851,
+  2855,
+  2880,
+  2884,
+  2888,
+  2913,
+  2917,
+  2921,
+  2946,
+  2950,
+  2954,
+  2979,
+  2983,
+  2987,
+])
 
 export function persianDateToCanonical(parts: PersianDateParts): string {
   assertValidPersianDate(parts)
-  const gregorian = toGregorian(parts.year, parts.month, parts.day)
-  return gregorianPartsToCanonical(gregorian)
+  const jdn =
+    firstPersianDayJdn(parts.year) +
+    daysBeforePersianMonth(parts.month) +
+    parts.day -
+    1
+  return gregorianPartsToCanonical(jdnToGregorian(jdn))
 }
 
 export function canonicalDateToPersian(canonicalDate: string): PersianDateParts {
   const gregorian = canonicalToGregorianParts(canonicalDate)
-  const persian = toPersian(gregorian.year, gregorian.month, gregorian.day)
-  assertFieldRepYear(persian.year)
-  return persian
+  const jdn = gregorianToJdn(gregorian.year, gregorian.month, gregorian.day)
+
+  // A Gregorian year overlaps two Persian years. Start with the later likely
+  // candidate then adjust against Farvardin 1 boundaries.
+  let year = gregorian.year - 621
+  while (jdn < firstPersianDayJdn(year)) year -= 1
+  while (jdn >= firstPersianDayJdn(year + 1)) year += 1
+
+  assertFieldRepYear(year)
+  const dayOfYear = jdn - firstPersianDayJdn(year)
+  const month = dayOfYear < 186 ? Math.floor(dayOfYear / 31) + 1 : Math.floor((dayOfYear - 186) / 30) + 7
+  const day = dayOfYear - daysBeforePersianMonth(month) + 1
+  const result = { year, month, day }
+
+  if (!isValidPersianDate(result)) {
+    throw new RangeError(`canonical date ${canonicalDate} produced an invalid Persian date`)
+  }
+  return result
 }
 
 export function isPersianLeapYear(year: number): boolean {
   assertFieldRepYear(year)
-  return jalCalLeap(year) === 0
+  return isPersianLeapYearUnchecked(year)
 }
 
 export function persianMonthLength(year: number, month: number): number {
@@ -95,11 +192,15 @@ export function persianMonthLength(year: number, month: number): number {
   assertMonth(month)
   if (month <= 6) return 31
   if (month <= 11) return 30
-  return isPersianLeapYear(year) ? 30 : 29
+  return isPersianLeapYearUnchecked(year) ? 30 : 29
 }
 
 export function isValidPersianDate(parts: PersianDateParts): boolean {
-  if (!Number.isInteger(parts.year) || parts.year < FIELDREP_MIN_PERSIAN_YEAR || parts.year > FIELDREP_MAX_PERSIAN_YEAR) {
+  if (
+    !Number.isInteger(parts.year) ||
+    parts.year < FIELDREP_MIN_PERSIAN_YEAR ||
+    parts.year > FIELDREP_MAX_PERSIAN_YEAR
+  ) {
     return false
   }
   if (!Number.isInteger(parts.month) || parts.month < 1 || parts.month > 12) return false
@@ -113,6 +214,7 @@ export function persianWeekdayIndex(parts: PersianDateParts): PersianWeekdayInde
 
 export function canonicalWeekdayIndex(canonicalDate: string): PersianWeekdayIndex {
   const date = canonicalToUtcDate(canonicalDate)
+  // JS: Sunday=0...Saturday=6. FieldRep UI: Saturday=0...Friday=6.
   return ((date.getUTCDay() + 1) % 7) as PersianWeekdayIndex
 }
 
@@ -163,6 +265,25 @@ export function persianWeekBounds(parts: PersianDateParts): { saturday: string; 
   return { saturday, friday: addCanonicalCalendarDays(saturday, 6) }
 }
 
+function isPersianLeapYearUnchecked(year: number): boolean {
+  if (ICU_NON_LEAP_CORRECTIONS.has(year)) return false
+  if (ICU_NON_LEAP_CORRECTIONS.has(year - 1)) return true
+  return floorMod(25 * year + 11, 33) < 8
+}
+
+function firstPersianDayJdn(year: number): number {
+  let days = 365 * (year - 1) + floorDiv(8 * year + 21, 33)
+  if (ICU_NON_LEAP_CORRECTIONS.has(year - 1)) days -= 1
+  // ICU Calendar's month-start hook returns the day before the civil first day;
+  // the conversion helpers here use conventional JDN for the civil day itself.
+  return PERSIAN_EPOCH_JDN + days
+}
+
+function daysBeforePersianMonth(month: number): number {
+  assertMonth(month)
+  return month <= 7 ? (month - 1) * 31 : 186 + (month - 7) * 30
+}
+
 function assertValidPersianDate(parts: PersianDateParts): void {
   if (!isValidPersianDate(parts)) {
     throw new RangeError(
@@ -172,7 +293,11 @@ function assertValidPersianDate(parts: PersianDateParts): void {
 }
 
 function assertFieldRepYear(year: number): void {
-  if (!Number.isInteger(year) || year < FIELDREP_MIN_PERSIAN_YEAR || year > FIELDREP_MAX_PERSIAN_YEAR) {
+  if (
+    !Number.isInteger(year) ||
+    year < FIELDREP_MIN_PERSIAN_YEAR ||
+    year > FIELDREP_MAX_PERSIAN_YEAR
+  ) {
     throw new RangeError(
       `Persian year must be between ${FIELDREP_MIN_PERSIAN_YEAR} and ${FIELDREP_MAX_PERSIAN_YEAR}`,
     )
@@ -221,124 +346,40 @@ function utcDateToCanonical(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-function toPersian(gy: number, gm: number, gd: number): PersianDateParts {
-  const result = d2j(g2d(gy, gm, gd))
-  return { year: result.jy, month: result.jm, day: result.jd }
-}
-
-function toGregorian(jy: number, jm: number, jd: number): GregorianDateParts {
-  const result = d2g(j2d(jy, jm, jd))
-  return { year: result.gy, month: result.gm, day: result.gd }
-}
-
-interface InternalPersianDate {
-  jy: number
-  jm: number
-  jd: number
-}
-
-interface InternalGregorianDate {
-  gy: number
-  gm: number
-  gd: number
-}
-
-function j2d(jy: number, jm: number, jd: number): number {
-  const r = jalCalCore(jy)
-  return g2d(r.gy, 3, r.march) + (jm - 1) * 31 - div(jm, 7) * (jm - 7) + jd - 1
-}
-
-function d2j(jdn: number): InternalPersianDate {
-  const gy = d2g(jdn).gy
-  let jy = gy - 621
-  const r = jalCal(jy)
-  const jdn1f = g2d(r.gy, 3, r.march)
-  let k = jdn - jdn1f
-
-  if (k >= 0) {
-    if (k <= 185) return { jy, jm: 1 + div(k, 31), jd: mod(k, 31) + 1 }
-    k -= 186
-  } else {
-    jy -= 1
-    k += 179
-    if (r.leap === 1) k += 1
-  }
-
-  return { jy, jm: 7 + div(k, 30), jd: mod(k, 30) + 1 }
-}
-
-function g2d(gy: number, gm: number, gd: number): number {
+/** Gregorian date -> conventional Julian Day Number. */
+function gregorianToJdn(gy: number, gm: number, gd: number): number {
   let d =
-    div((gy + div(gm - 8, 6) + 100100) * 1461, 4) +
-    div(153 * mod(gm + 9, 12) + 2, 5) +
+    truncDiv((gy + truncDiv(gm - 8, 6) + 100100) * 1461, 4) +
+    truncDiv(153 * truncMod(gm + 9, 12) + 2, 5) +
     gd -
     34840408
-  d = d - div(div(gy + 100100 + div(gm - 8, 6), 100) * 3, 4) + 752
+  d = d - truncDiv(truncDiv(gy + 100100 + truncDiv(gm - 8, 6), 100) * 3, 4) + 752
   return d
 }
 
-function d2g(jdn: number): InternalGregorianDate {
+/** Conventional Julian Day Number -> Gregorian date. */
+function jdnToGregorian(jdn: number): GregorianDateParts {
   let j = 4 * jdn + 139361631
-  j = j + div(div(4 * jdn + 183187720, 146097) * 3, 4) * 4 - 3908
-  const i = div(mod(j, 1461), 4) * 5 + 308
-  const gd = div(mod(i, 153), 5) + 1
-  const gm = mod(div(i, 153), 12) + 1
-  const gy = div(j, 1461) - 100100 + div(8 - gm, 6)
-  return { gy, gm, gd }
+  j = j + truncDiv(truncDiv(4 * jdn + 183187720, 146097) * 3, 4) * 4 - 3908
+  const i = truncDiv(truncMod(j, 1461), 4) * 5 + 308
+  const day = truncDiv(truncMod(i, 153), 5) + 1
+  const month = truncMod(truncDiv(i, 153), 12) + 1
+  const year = truncDiv(j, 1461) - 100100 + truncDiv(8 - month, 6)
+  return { year, month, day }
 }
 
-function jalCal(jy: number): { leap: number; gy: number; march: number } {
-  const { gy, march, jump, n } = jalCalCore(jy)
-  return { leap: leapFromCycle(jump, n), gy, march }
+function floorDiv(a: number, b: number): number {
+  return Math.floor(a / b)
 }
 
-function jalCalCore(jy: number): JalCalCore {
-  if (!Number.isInteger(jy) || jy < BORKOWSKI_MIN_YEAR || jy > BORKOWSKI_MAX_YEAR) {
-    throw new RangeError(
-      `Persian year ${jy} is outside Borkowski conversion range ${BORKOWSKI_MIN_YEAR}..${BORKOWSKI_MAX_YEAR}`,
-    )
-  }
-
-  const gy = jy + 621
-  let leapJ = -14
-  let jp: number = BREAKS[0]
-  let jm = 0
-  let jump = 0
-
-  for (let index = 1; index < BREAKS.length; index += 1) {
-    jm = BREAKS[index] as number
-    jump = jm - jp
-    if (jy < jm) break
-    leapJ += div(jump, 33) * 8 + div(mod(jump, 33), 4)
-    jp = jm
-  }
-
-  const n = jy - jp
-  leapJ += div(n, 33) * 8 + div(mod(n, 33) + 3, 4)
-  if (mod(jump, 33) === 4 && jump - n === 4) leapJ += 1
-
-  const leapG = div(gy, 4) - div((div(gy, 100) + 1) * 3, 4) - 150
-  const march = 20 + leapJ - leapG
-  return { gy, march, jump, n }
+function floorMod(a: number, b: number): number {
+  return ((a % b) + b) % b
 }
 
-function leapFromCycle(jump: number, n: number): number {
-  let adjusted = n
-  if (jump - n < 6) adjusted = n - jump + div(jump + 4, 33) * 33
-  let leap = mod(mod(adjusted + 1, 33) - 1, 4)
-  if (leap === -1) leap = 4
-  return leap
-}
-
-function jalCalLeap(jy: number): number {
-  const { jump, n } = jalCalCore(jy)
-  return leapFromCycle(jump, n)
-}
-
-function div(a: number, b: number): number {
+function truncDiv(a: number, b: number): number {
   return Math.trunc(a / b)
 }
 
-function mod(a: number, b: number): number {
+function truncMod(a: number, b: number): number {
   return a - Math.trunc(a / b) * b
 }
