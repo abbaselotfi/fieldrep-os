@@ -16,6 +16,8 @@ export type CalendarEventId = string
 export type LeaveRequestId = string
 export type BusinessTripId = string
 export type BusinessTripDestinationId = string
+export type CompanyProgramId = string
+export type DoctorProgramId = string
 export type RoleKey =
   | 'platform_admin'
   | 'company_admin'
