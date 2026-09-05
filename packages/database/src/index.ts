@@ -51,6 +51,8 @@ export type {
   CreateBusinessTripInput,
 } from './business-trip-repository'
 export { WorkspaceBusinessTripRepository } from './business-trip-repository'
+export type { SpecializedProgramRepository } from './specialized-program-repository'
+export { WorkspaceSpecializedProgramRepository } from './specialized-program-repository'
 export type {
   PersistedWorkbookImportPreview,
   PersistWorkbookImportPreviewInput,
