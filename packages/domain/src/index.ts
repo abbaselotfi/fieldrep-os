@@ -3,6 +3,7 @@ export type {
   CalendarEventId,
   CompanyId,
   CustomerId,
+  LeaveRequestId,
   LocationId,
   MembershipId,
   OrganizationUnitId,
@@ -141,6 +142,19 @@ export {
   validateActivity,
   validateCalendarItem,
 } from './calendar-contracts'
+export type {
+  LeaveRequest,
+  LeaveStatus,
+  LeaveType,
+} from './leave'
+export {
+  cancelOwnLeaveRequest,
+  decideLeaveRequest,
+  leaveBlocksPlanning,
+  leaveToCalendarItem,
+  submitLeaveRequest,
+  validateLeaveRequest,
+} from './leave'
 export type {
   JalaliDateParts,
   PlanningCycleBounds,
