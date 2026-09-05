@@ -4,7 +4,8 @@
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** COMPLETE — authenticated Field User shell/test-security gate passed  
 **P2 status:** COMPLETE — real XLSM compatibility + Excel-parity regression gate passed  
-**Current work item:** P3-A1 — Operational Calendar domain/persistence foundation
+**P3 status:** IN PROGRESS  
+**Current work item:** P3-A6 — Specialized meetings + company programs + doctor programs
 
 ## Product priority
 
@@ -13,7 +14,7 @@ The first production-critical surface is the **Field User Workspace**. The legac
 ```text
 authenticated field user
 → Excel parity                         COMPLETE
-→ operational calendar                NEXT / P3
+→ operational calendar                IN PROGRESS / P3
 → offline PWA
 → maps/location
 → visit verification
@@ -155,9 +156,9 @@ Implementation record: `P2-A9-WORKBOOK-IMPORT.md`.
 
 The one-year Excel calendar is not the production date engine.
 
-FieldRep OS now uses one authoritative deterministic Solar Hijri engine in `packages/domain/src/persian-calendar.ts`, pinned to the current Unicode ICU PersianCalendar arithmetic/correction behavior. Planning cycles, import conversion and Calendar UI all delegate to that same engine.
+FieldRep OS uses one authoritative deterministic Solar Hijri engine in `packages/domain/src/persian-calendar.ts`, pinned to current Unicode ICU PersianCalendar arithmetic/correction behavior. Planning cycles, import conversion and Calendar UI all delegate to that same engine.
 
-The gate intentionally tested every valid day in the supported range 1300..1600 SH. An initial Borkowski-based implementation was rejected after the exhaustive test found a real one-day divergence at the 1502 correction boundary. The ICU-corrected implementation passes the unchanged regression.
+The gate tests every valid day in the supported range 1300..1600 SH. An initial Borkowski-based implementation was rejected after exhaustive testing found a real one-day divergence at the 1502 correction boundary. The ICU-corrected implementation passes the unchanged regression.
 
 Calendar coverage includes:
 
@@ -169,19 +170,13 @@ Calendar coverage includes:
 - 95 consecutive date/weekday headers from the real XLSM;
 - known current/Nowruz anchors.
 
-The actual Field User Calendar UI now renders from `buildPersianMonthGrid()` rather than hard-coded blank offsets or 31-day arrays. It supports month navigation, Today, spillover days, selected day, Friday state and activity overlays using a modern enterprise/pharma visual direction.
-
-Official/public/religious holidays are a separate versioned annual dataset. University of Tehran Calendar Center is the primary official annual reference; Time.ir is an independent validation/reference source. Holiday datasets never modify the civil conversion algorithm.
+The Field User Calendar UI renders from `buildPersianMonthGrid()` rather than hard-coded blank offsets or 31-day arrays. Official/public/religious holidays are a separate versioned annual dataset and never modify civil conversion math.
 
 Implementation record: `P2-A10-CALENDAR-CORRECTNESS.md`.
 
 ### P2 dedicated regression gate
 
-CI now has an explicit `Validate P2 Excel parity` step (`pnpm validate:p2-parity`) in addition to the full test suite.
-
-The sanitized golden structure asserts the verified workbook shape/counts. Focused regression tests cover the domain rules, calendar engine, workbook adapter/importer, repositories, secured APIs and preview UI projections.
-
-P2 closure gate on branch `feat/p2-excel-parity-rules`:
+CI has an explicit `Validate P2 Excel parity` step (`pnpm validate:p2-parity`) in addition to the full test suite.
 
 ```text
 SQL migration validation           PASS
@@ -193,30 +188,50 @@ Full unit suite                    PASS
 Production build                   PASS
 ```
 
-No production Cloudflare/D1 data migration or deployment is claimed by P2; that is an isolated environment/deployment operation and is not required for the Excel-parity code gate.
-
 Primary acceptance source: `EXCEL-PARITY-MATRIX.md`.
 
 ---
 
-## P3 — Operational Calendar & Activities — NEXT
+## P3 — Operational Calendar & Activities — IN PROGRESS
 
 Goal: turn the correct civil calendar into the complete operational work timeline used by a field representative and company/workspace calendar policy.
 
-Planned sequence:
+### Internal sequence
 
 ```text
-P3-A1  Activity/calendar domain contracts + persistence          NEXT
-P3-A2  Secured activity APIs + scope/ownership rules
-P3-A3  Working-week policy + public holiday dataset composition
-P3-A4  Company/workspace closures and overrides
-P3-A5  Leave workflow foundation
-P3-A6  Business trip / mission model
-P3-A7  Internal meetings + company programs + doctor programs
-P3-A8  Month/week/day/agenda projections and UI
-P3-A9  Planner/calendar conflict engine
+P3-A1  Activity/calendar domain contracts + persistence                    DONE
+P3-A2  Secured own-activity CRUD/API/client                                DONE
+P3-A3  Working-week + official holidays + company/workspace overrides      DONE
+P3-A4  Leave request workflow foundation                                   DONE
+P3-A5  Business trip / mission model                                       DONE
+P3-A6  Specialized meetings + company programs + doctor programs           CURRENT
+P3-A7  Month/week/day/agenda projections + rich professional status cards
+P3-A8  Planner/calendar conflict engine
+P3-A9  Calendar/report activity reconciliation
 P3-A10 P3 regression/security closure gate
 ```
+
+### P3 completed decisions
+
+- `activities` is authoritative for generic non-visit activities; `calendar_events` is a rebuildable unified timeline projection.
+- Calendar projections cannot become Visit/Frequency/Achievement truth. Only authoritative Actual Visit records drive those KPIs.
+- Generic own-activity API is owner-scoped and lets Field Users create `internal_meeting` and `custom_activity`; broader programs require scoped authority.
+- Activity create/update/cancel keeps authoritative Activity and Calendar projection synchronized atomically.
+- Working-day resolution is fail-closed when the verified annual official-calendar dataset or effective working-week policy is missing.
+- Official holidays and company/workspace closures are hard blockers; a normal `working_day` override cannot silently reopen an official holiday or closure.
+- Iran 1405 official holidays are stored as a versioned source-attributed dataset; runtime rendering never scrapes a website.
+- Leave is a first-class workflow (`draft → requested → approved/rejected`) with owner cancellation only before decision. Only approved leave blocks Planner; Leave can never count as Visit KPI.
+- Business Trip/Mission is independent from Leave/Meeting, supports ordered multiple destinations, purpose, transport and decision lifecycle. Approval provenance is retained after completion.
+- A mission is not automatically an all-day Plan blocker: `blocksPlanning` is explicit because valid visits may occur in the destination city. Destination context is preserved for later city/route conflict and AI logic.
+- Business Trips can never count as Visit KPI.
+- The P3 visual baseline is **Clinical Enterprise** with a restrained combination of a thin semantic status rail and a readable soft status badge; color remains supplementary rather than the sole status signal.
+
+Implementation records:
+
+- `P3-VISUAL-BASELINE.md`
+- `P3-A1-ACTIVITY-CALENDAR-FOUNDATION.md`
+- `P3-A4-LEAVE-WORKFLOW.md`
+- `P3-A5-BUSINESS-TRIP.md`
 
 Scope:
 
@@ -231,7 +246,7 @@ Scope:
 - doctor programs/events;
 - planning conflict engine.
 
-Activities must not incorrectly increment doctor visit Frequency/Visited/Achievement.
+Activities must not incorrectly increment doctor Visit/Frequency/Achievement.
 
 ---
 

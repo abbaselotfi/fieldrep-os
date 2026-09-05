@@ -30,6 +30,30 @@ export type {
 } from './visit-repository'
 export { WorkspaceVisitActualRepository } from './visit-repository'
 export type {
+  CalendarActivityRepository,
+  CreateActivityInput,
+  UpdateActivityInput,
+} from './calendar-activity-repository'
+export { WorkspaceCalendarActivityRepository } from './calendar-activity-repository'
+export type {
+  CreateCalendarOverrideInput,
+  CreateWorkingCalendarRuleInput,
+  WorkingCalendarRepository,
+} from './working-calendar-repository'
+export { WorkspaceWorkingCalendarRepository } from './working-calendar-repository'
+export type {
+  CreateLeaveRequestInput,
+  LeaveRequestRepository,
+} from './leave-repository'
+export { WorkspaceLeaveRequestRepository } from './leave-repository'
+export type {
+  BusinessTripRepository,
+  CreateBusinessTripInput,
+} from './business-trip-repository'
+export { WorkspaceBusinessTripRepository } from './business-trip-repository'
+export type { SpecializedProgramRepository } from './specialized-program-repository'
+export { WorkspaceSpecializedProgramRepository } from './specialized-program-repository'
+export type {
   PersistedWorkbookImportPreview,
   PersistWorkbookImportPreviewInput,
 } from './workbook-import-repository'

@@ -11,6 +11,13 @@ export type LocationId = string
 export type PlanEntryId = string
 export type VisitId = string
 export type PlanningCycleId = string
+export type ActivityId = string
+export type CalendarEventId = string
+export type LeaveRequestId = string
+export type BusinessTripId = string
+export type BusinessTripDestinationId = string
+export type CompanyProgramId = string
+export type DoctorProgramId = string
 export type RoleKey =
   | 'platform_admin'
   | 'company_admin'
