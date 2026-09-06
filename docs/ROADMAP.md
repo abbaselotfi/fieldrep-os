@@ -1,10 +1,11 @@
 # FieldRep OS — Roadmap
 
-**Baseline:** 2026-09-05  
+**Baseline:** 2026-09-07  
 **P0 status:** COMPLETE — architecture foundation ready for implementation  
 **P1 status:** COMPLETE — authenticated Field User shell/test-security gate passed  
 **P2 status:** COMPLETE — real XLSM compatibility + Excel-parity regression gate passed  
-**Current work item:** P3-A1 — Operational Calendar domain/persistence foundation
+**P3 status:** COMPLETE — operational calendar domain/APIs/UI + conflict-engine gate passed  
+**Current work item:** P4-A1 — Offline PWA foundation (IndexedDB workspace cache)
 
 ## Product priority
 
@@ -13,8 +14,8 @@ The first production-critical surface is the **Field User Workspace**. The legac
 ```text
 authenticated field user
 → Excel parity                         COMPLETE
-→ operational calendar                NEXT / P3
-→ offline PWA
+→ operational calendar                COMPLETE
+→ offline PWA                         NEXT / P4
 → maps/location
 → visit verification
 → AI-assisted planning
@@ -199,39 +200,70 @@ Primary acceptance source: `EXCEL-PARITY-MATRIX.md`.
 
 ---
 
-## P3 — Operational Calendar & Activities — NEXT
+## P3 — Operational Calendar & Activities — COMPLETE
 
 Goal: turn the correct civil calendar into the complete operational work timeline used by a field representative and company/workspace calendar policy.
 
-Planned sequence:
-
 ```text
-P3-A1  Activity/calendar domain contracts + persistence          NEXT
-P3-A2  Secured activity APIs + scope/ownership rules
-P3-A3  Working-week policy + public holiday dataset composition
-P3-A4  Company/workspace closures and overrides
-P3-A5  Leave workflow foundation
-P3-A6  Business trip / mission model
-P3-A7  Internal meetings + company programs + doctor programs
-P3-A8  Month/week/day/agenda projections and UI
-P3-A9  Planner/calendar conflict engine
-P3-A10 P3 regression/security closure gate
+P3-A1  Activity/calendar domain contracts + persistence          DONE
+P3-A2  Secured activity APIs + scope/ownership rules             DONE
+P3-A3  Working-week policy + public holiday dataset composition  DONE
+P3-A4  Company/workspace closures and overrides                  DONE
+P3-A5  Leave workflow foundation                                 DONE
+P3-A6  Business trip / mission model                             DONE
+P3-A7  Internal meetings + company programs + doctor programs    DONE
+P3-A8  Month/week/day/agenda projections and UI                  DONE
+P3-A9  Planner/calendar conflict engine                          DONE
+P3-A10 P3 regression/security closure gate                       DONE
 ```
+
+Key outcomes:
+
+- `packages/domain/src/calendar-activity.ts` defines the eleven calendar item categories with explicit per-category policy flags (`blocksPlanning / countsAsWorkingActivity / countsAsVisit / appearsInReport / requiresApproval`). `countsAsVisit` is `false` for every non-visit category, so meetings, programs, trips and closures can never increment doctor visit Frequency/Visited/Achievement.
+- `packages/domain/src/working-calendar.ts` resolves the effective working-day context from layered rules (working weekdays + official holidays + company/workspace closures + approved leave + blocking activities) and exposes the planning conflict engine with `info / warning / block` severities and a versionable policy object.
+- `evaluatePlanCandidate()` now accepts an optional calendar `dayContext`; a non-plannable day is a hard planner error and calendar conflicts are returned with the evaluation (Planner → Calendar service boundary per `CALENDAR-ACTIVITY-SPEC.md` §17).
+- Migration `0007_calendar_activities.sql` adds `workspace_working_calendar`, `calendar_activities` (+ targets), `leave_requests`, `business_trips` and `calendar_closures` with workspace-match triggers, canonical-date closures and validation via `scripts/validate-migrations.mjs`. Visit rows are excluded at the schema level.
+- `WorkspaceCalendarRepository` (packages/database) and `createCalendarApi()` (apps/worker) provide fail-closed, permission-scoped endpoints: unified `calendar/items` projection, `calendar/day/:date` working-day context + conflicts, working-calendar policy read, and field-user self-service leave/trip creation and cancellation (approval/rejection remains a supervisor/admin concern for P8/P9).
+- Calendar UI (apps/web) renders month/week/day/agenda views from the domain projection and working-day model, with blocked-day reasons, activity dots and the selected-day status panel. Demo-backed records keep the UI reviewable before P4 backend wiring, exactly like the planner previews.
+- Official holidays continue to be a versioned annual dataset (`official-calendar.ts`), composed into the working calendar — never inferred from calendar arithmetic.
 
 Scope:
 
-- approved Jalali month UI plus week/day/agenda views;
-- verified public/religious holidays;
-- company/workspace closures;
-- configurable working weekdays;
-- leave;
-- business trip / mission;
-- internal meetings;
-- company programs;
-- doctor programs/events;
-- planning conflict engine.
+- approved Jalali month UI plus week/day/agenda views — delivered;
+- verified public/religious holidays — composed from the official dataset layer;
+- company/workspace closures — persisted with unique per-level per-day constraint;
+- configurable working weekdays — `workspace_working_calendar` policy (defaults Sat–Thu);
+- leave — annual/sick/hourly/emergency/other with draft→requested→approved/rejected/cancelled lifecycle (approval actions arrive with the supervisor workspace);
+- business trip / mission — destination context recorded for planning/recommendations;
+- internal meetings / company programs / doctor programs — unified activity store with scope and policy overrides;
+- planning conflict engine — reason-based, policy-configurable, integrated into the planner engine.
 
-Activities must not incorrectly increment doctor visit Frequency/Visited/Achievement.
+P3 closure gate (local run, 2026-09-07):
+
+```text
+SQL migration validation           PASS
+P2 Excel-parity focused gate       PASS
+P3 calendar focused gate           PASS (51 focused tests)
+TypeScript                         PASS
+Full unit suite                    PASS (194 tests)
+Production build                   PASS
+```
+
+Primary acceptance sources: `CALENDAR-ACTIVITY-SPEC.md`, `COMPETITIVE-ANALYSIS.md`.
+
+---
+
+## Industry best-practice integration
+
+A structured review of Veeva Vault CRM, IQVIA OCE (Orchestrated Customer Engagement) and Sanofi's internal "Concierge for Field" experience is recorded in `COMPETITIVE-ANALYSIS.md`, with each adopted pattern mapped to the owning phase. Summary of phase-level effects:
+
+- **P3 (this phase):** Veeva "My Schedule"-style day-first calendar, OCE-style separation of visit KPIs from non-visit activities, and the working-calendar/conflict layer were adopted and implemented.
+- **P4 (offline):** adopt the OCE-style explicit sync-queue/checkpoint model with idempotent operation identity already anticipated by the data model.
+- **P6 (verification):** adopt the Veeva-style check-in state machine (`verified / nearby / unverified / outside`) already scoped in this roadmap.
+- **P7 (AI):** keep the explainable deterministic engine mandatory and add the Veeva "Agentic Call Report"-inspired LLM drafting only as an editable suggestion layer; adopt the Concierge pattern (one-tap daily briefing and an in-workspace assistant surface) inside the existing AI workspace boundaries.
+- **P8/P9 (supervisor/admin):** adopt OCE-style coverage/frequency dashboards and policy configuration of calendar rules (working weekdays, closures, conflict severity policy).
+
+No competitor UI is copied and no vendor-specific data model is imported; only behavioral patterns compatible with the tenancy/isolation and advisory-AI boundaries are adopted.
 
 ---
 

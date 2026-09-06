@@ -19,6 +19,8 @@ export const FIELD_USER_PERMISSIONS = {
   customerReadAssigned: 'customers.read.assigned',
   calendarReadOwn: 'calendar.read.own',
   activityReadOwn: 'activities.read.own',
+  activityCreateOwn: 'activities.create.own',
+  activityUpdateOwn: 'activities.update.own',
   settingsUpdateOwn: 'settings.update.own',
 } as const satisfies Record<string, PermissionKey>
 

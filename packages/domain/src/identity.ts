@@ -19,3 +19,4 @@ export type RoleKey =
   | 'user'
   | (string & {})
 export type PermissionKey = string
+

@@ -109,6 +109,53 @@ export {
   validateOfficialCalendarDataset,
 } from './official-calendar'
 export type {
+  BusinessTrip,
+  BusinessTripStatus,
+  CalendarActivity,
+  CalendarActivityPolicy,
+  CalendarActivityStatus,
+  CalendarActivityType,
+  CalendarClosure,
+  CalendarItem,
+  CalendarItemType,
+  CalendarLocationRef,
+  CalendarProjectionInput,
+  CalendarScope,
+  CalendarSourceType,
+  LeaveRequest,
+  LeaveRequestStatus,
+  LeaveRequestType,
+  PlaceContext,
+} from './calendar-activity'
+export {
+  buildCalendarProjection,
+  CALENDAR_ACTIVITY_POLICIES,
+  calendarItemFromActivity,
+  calendarItemFromBusinessTrip,
+  calendarItemFromClosure,
+  calendarItemFromLeaveRequest,
+  calendarItemFromOfficialEvent,
+  calendarItemFromPlanEntry,
+} from './calendar-activity'
+export type {
+  CalendarConstraintReason,
+  PlanningConflict,
+  PlanningConflictCode,
+  PlanningConflictPolicy,
+  PlanningConflictSeverity,
+  WorkingDayContext,
+  WorkingDayInput,
+} from './working-calendar'
+export {
+  DEFAULT_PLANNING_CONFLICT_POLICY,
+  DEFAULT_WORKING_WEEKDAYS,
+  evaluatePlanDayConflicts,
+  evaluatePlanEntryConflicts,
+  hasBlockingConflict,
+  resolveWorkingDayContext,
+} from './working-calendar'
+
+export type {
   JalaliDateParts,
   PlanningCycleBounds,
   PlanningCycleSummary,

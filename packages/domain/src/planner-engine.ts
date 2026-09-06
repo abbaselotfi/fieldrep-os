@@ -13,6 +13,8 @@ import {
   evaluateDailyTarget,
   findDuplicatePlanConflicts,
 } from './planner-rules'
+import type { PlanningConflict, WorkingDayContext } from './working-calendar'
+import { evaluatePlanEntryConflicts } from './working-calendar'
 
 export type PlannerIssueCode =
   | 'outside_planning_cycle'
@@ -21,6 +23,7 @@ export type PlannerIssueCode =
   | 'route_mismatch'
   | 'frequency_already_achieved'
   | 'daily_target_exceeded'
+  | 'day_not_plannable'
 
 export interface PlannerIssue {
   code: PlannerIssueCode
@@ -35,12 +38,20 @@ export interface PlanCandidateEvaluationInput {
   requiredFrequency: number
   visited: number
   customerRouteIds?: readonly RouteId[]
+  /**
+   * Optional effective working-day context from the calendar constraint
+   * service (docs/CALENDAR-ACTIVITY-SPEC.md §17). When provided, a day that
+   * disallows planning becomes a hard error and calendar conflicts are
+   * returned with the evaluation.
+   */
+  dayContext?: WorkingDayContext
 }
 
 export interface PlanCandidateEvaluation {
   canAdd: boolean
   issues: PlannerIssue[]
   duplicateConflicts: DuplicateConflict[]
+  calendarConflicts: PlanningConflict[]
   visitProgress: VisitProgress
   dailyTargetBefore: DailyTargetProgress
   dailyTargetAfter: DailyTargetProgress
@@ -60,9 +71,20 @@ export function evaluatePlanCandidate(
   const dailyTargetAfter = evaluateDailyTarget(input.dailyTarget, plannedBefore + 1)
   const duplicateConflicts = findDuplicatePlanConflicts(scopedEntries, input.candidate)
   const issues: PlannerIssue[] = []
+  const calendarConflicts =
+    input.dayContext === undefined
+      ? []
+      : evaluatePlanEntryConflicts({
+          planDate: input.candidate.planDate,
+          dayContext: input.dayContext,
+        })
 
   if (!isDateInPlanningCycle(input.candidate.planDate, input.cycle)) {
     issues.push({ code: 'outside_planning_cycle', severity: 'error' })
+  }
+
+  if (input.dayContext !== undefined && !input.dayContext.planningAllowed) {
+    issues.push({ code: 'day_not_plannable', severity: 'error' })
   }
 
   if (duplicateConflicts.some((conflict) => conflict.kind === 'same_day')) {
@@ -93,6 +115,7 @@ export function evaluatePlanCandidate(
     canAdd: !issues.some((issue) => issue.severity === 'error'),
     issues,
     duplicateConflicts,
+    calendarConflicts,
     visitProgress,
     dailyTargetBefore,
     dailyTargetAfter,

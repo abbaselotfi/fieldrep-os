@@ -11,11 +11,13 @@
     "dev:worker": "pnpm --filter @fieldrep/worker dev",
     "validate:migrations": "node scripts/validate-migrations.mjs",
     "validate:pwa": "node scripts/validate-pwa.mjs",
+    "validate:p3-calendar": "node scripts/validate-p3-calendar.mjs && vitest run packages/domain/src/calendar-activity.test.ts packages/domain/src/working-calendar.test.ts packages/domain/src/planner-engine.test.ts packages/database/src/calendar-repository.test.ts apps/worker/src/routes/calendar-api.test.ts apps/web/src/features/calendar/preview-calendar.test.ts",
+
     "validate:p2-parity": "node scripts/validate-p2-parity.mjs && vitest run packages/domain/src/persian-calendar.test.ts packages/domain/src/official-calendar.test.ts packages/domain/src/planning-cycle.test.ts packages/domain/src/planner-rules.test.ts packages/domain/src/planner-engine.test.ts packages/domain/src/legacy-workbook-adapter.test.ts packages/domain/src/workbook-import.test.ts packages/domain/src/visit-progress.test.ts packages/domain/src/reporting.test.ts packages/database/src/customer-repository.test.ts packages/database/src/plan-repository.test.ts packages/database/src/visit-repository.test.ts packages/database/src/workbook-import-repository.test.ts apps/worker/src/routes/customer-reference.test.ts apps/worker/src/routes/plan-api.test.ts apps/worker/src/routes/visit-api.test.ts apps/web/src/features/planner/preview-plan.test.ts apps/web/src/features/visits/preview-visit.test.ts apps/web/src/features/reports/preview-report.test.ts",
     "typecheck": "tsc -p packages/domain/tsconfig.json --noEmit && tsc -p packages/shared/tsconfig.json --noEmit && tsc -p packages/permissions/tsconfig.json --noEmit && tsc -p packages/database/tsconfig.json --noEmit && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/worker/tsconfig.json --noEmit",
     "test": "vitest run",
     "build": "pnpm --filter @fieldrep/web build && pnpm --filter @fieldrep/worker build",
-    "check": "pnpm validate:migrations && pnpm validate:pwa && pnpm validate:p2-parity && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm validate:migrations && pnpm validate:pwa && pnpm validate:p2-parity && pnpm validate:p3-calendar && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
     "@types/node": "26.4.1",

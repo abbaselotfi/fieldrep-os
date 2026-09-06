@@ -19,6 +19,17 @@ export {
 export type { CustomerReadRepository } from './customer-repository'
 export { WorkspaceCustomerReadRepository } from './customer-repository'
 export type {
+  CalendarRepository,
+  CalendarActivityFilter,
+  CreateCalendarActivityInput,
+  CreateLeaveRequestInput,
+  CreateBusinessTripInput,
+  LeaveRequestStatusPatch,
+  WorkingCalendarConfig,
+} from './calendar-repository'
+export { WorkspaceCalendarRepository } from './calendar-repository'
+
+export type {
   CreatePlanEntryInput,
   PlanEntryRepository,
   UpdatePlanEntryInput,

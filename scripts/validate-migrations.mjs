@@ -127,6 +127,12 @@ applyMigrations(
     'customer_route_assignments',
     'customer_locations',
     'planning_cycles',
+    'workspace_working_calendar',
+    'calendar_activities',
+    'calendar_activity_targets',
+    'leave_requests',
+    'business_trips',
+    'calendar_closures',
   ],
   (db) => {
     const now = 1_780_000_000_000
@@ -304,5 +310,207 @@ applyMigrations(
           .run('cycle-invalid-range', 'workspace-a', 'custom', 'Invalid range', '2026-11-30', '2026-11-01', 'draft', now, now),
       'planning cycle end date cannot precede start date',
     )
+
+    // -- P3 calendar & activity constraints ---------------------------------
+
+    db.prepare(
+      `INSERT INTO calendar_activities
+        (id, workspace_id, activity_type, title, scope_type, starts_at, ends_at,
+         all_day, blocks_planning, counts_as_working_activity, appears_in_report,
+         status, created_by_user_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      'meeting-1',
+      'workspace-a',
+      'internal_meeting',
+      'Cycle meeting',
+      'workspace',
+      now,
+      now + 3_600_000,
+      0,
+      1,
+      1,
+      1,
+      'confirmed',
+      'user-1',
+      now,
+      now,
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO calendar_activities
+              (id, workspace_id, activity_type, title, scope_type, starts_at, ends_at,
+               all_day, blocks_planning, counts_as_working_activity, appears_in_report,
+               status, created_by_user_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            'meeting-bad-type',
+            'workspace-a',
+            'visit',
+            'Visit rows are not activities',
+            'workspace',
+            now,
+            now + 3_600_000,
+            0,
+            0,
+            1,
+            1,
+            'confirmed',
+            'user-1',
+            now,
+            now,
+          ),
+      'visit rows must not be stored as calendar activities',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO calendar_activities
+              (id, workspace_id, activity_type, title, scope_type, starts_at, ends_at,
+               all_day, blocks_planning, counts_as_working_activity, appears_in_report,
+               status, created_by_user_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            'meeting-bad-range',
+            'workspace-a',
+            'internal_meeting',
+            'Inverted range',
+            'workspace',
+            now + 3_600_000,
+            now,
+            0,
+            0,
+            1,
+            1,
+            'confirmed',
+            'user-1',
+            now,
+            now,
+          ),
+      'activity end time cannot precede start time',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO calendar_activities
+              (id, workspace_id, activity_type, title, scope_type, starts_at, ends_at,
+               all_day, blocks_planning, counts_as_working_activity, appears_in_report,
+               status, created_by_user_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            'meeting-bad-scope',
+            'workspace-a',
+            'internal_meeting',
+            'Org unit without target',
+            'organization_unit',
+            now,
+            now + 3_600_000,
+            0,
+            0,
+            1,
+            1,
+            'confirmed',
+            'user-1',
+            now,
+            now,
+          ),
+      'organization-unit scope requires organization_unit_id',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            'INSERT INTO calendar_activity_targets (activity_id, workspace_id, user_id) VALUES (?, ?, ?)',
+          )
+          .run('meeting-1', 'workspace-b', 'user-1'),
+      'activity targets cannot claim another workspace',
+    )
+
+    db.prepare(
+      'INSERT INTO calendar_activity_targets (activity_id, workspace_id, user_id) VALUES (?, ?, ?)',
+    ).run('meeting-1', 'workspace-a', 'user-2')
+
+    db.prepare(
+      `INSERT INTO leave_requests
+        (id, workspace_id, user_id, leave_type, starts_at, ends_at, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run('leave-1', 'workspace-a', 'user-1', 'annual', now, now + 86_400_000, 'requested', now, now)
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO leave_requests
+              (id, workspace_id, user_id, leave_type, starts_at, ends_at, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run('leave-bad', 'workspace-a', 'user-1', 'sabbatical', now, now + 86_400_000, 'requested', now, now),
+      'unknown leave types must be rejected',
+    )
+
+    db.prepare(
+      `INSERT INTO business_trips
+        (id, workspace_id, user_id, destination_json, starts_at, ends_at, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      'trip-1',
+      'workspace-a',
+      'user-1',
+      JSON.stringify({ label: 'Bojnourd', city: 'Bojnourd' }),
+      now,
+      now + 86_400_000,
+      'planned',
+      now,
+      now,
+    )
+
+    db.prepare(
+      `INSERT INTO calendar_closures
+        (id, workspace_id, closure_level, canonical_date, label, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run('closure-1', 'workspace-a', 'workspace', '2026-09-14', 'Inventory day', now)
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO calendar_closures
+              (id, workspace_id, closure_level, canonical_date, label, created_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .run('closure-duplicate', 'workspace-a', 'workspace', '2026-09-14', 'Duplicate', now),
+      'one closure per level per civil day',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO calendar_closures
+              (id, workspace_id, closure_level, canonical_date, label, created_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .run('closure-bad-date', 'workspace-a', 'workspace', '14/09/2026', 'Bad date', now),
+      'closures must store canonical YYYY-MM-DD civil dates',
+    )
+
+    const implicitCalendarSeed = db
+      .prepare('SELECT workspace_id FROM workspace_working_calendar WHERE workspace_id = ?')
+      .get('workspace-a')
+
+    if (implicitCalendarSeed !== undefined) {
+      throw new Error('workspace working calendar must only exist after an explicit policy write')
+    }
   },
 )
