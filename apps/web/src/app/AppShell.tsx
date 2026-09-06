@@ -2,6 +2,7 @@ import { APP_NAME } from '@fieldrep/shared'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
+import { SyncStatusPill } from '../offline/sync-react'
 import { NavIcon, type NavIconName } from './NavIcon'
 
 interface NavigationItem {
@@ -143,10 +144,7 @@ export function AppShell() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="hidden items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-2 text-[11px] font-bold text-[var(--text-secondary)] sm:inline-flex">
-                <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
-                آنلاین
-              </span>
+              <SyncStatusPill />
               <button
                 type="button"
                 onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}

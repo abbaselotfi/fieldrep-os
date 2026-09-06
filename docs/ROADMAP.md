@@ -5,7 +5,8 @@
 **P1 status:** COMPLETE — authenticated Field User shell/test-security gate passed  
 **P2 status:** COMPLETE — real XLSM compatibility + Excel-parity regression gate passed  
 **P3 status:** COMPLETE — operational calendar domain/APIs/UI + conflict-engine gate passed  
-**Current work item:** P4-A1 — Offline PWA foundation (IndexedDB workspace cache)
+**P4 status:** P4-A1 COMPLETE — offline PWA foundation (IndexedDB workspace cache)  
+**Current work item:** P4-A2 — authorized offline cache wiring + idempotent sync endpoints
 
 ## Product priority
 
@@ -15,7 +16,8 @@ The first production-critical surface is the **Field User Workspace**. The legac
 authenticated field user
 → Excel parity                         COMPLETE
 → operational calendar                COMPLETE
-→ offline PWA                         NEXT / P4
+→ offline PWA foundation               NEXT / P4-A1 DONE
+→ offline sync + server idempotency    NEXT / P4
 → maps/location
 → visit verification
 → AI-assisted planning
@@ -269,7 +271,37 @@ No competitor UI is copied and no vendor-specific data model is imported; only b
 
 ## P4 — Offline PWA & Synchronization
 
+Goal: let a field user keep working during poor connectivity without silent data loss or tenant leaks, with clear saved/synced/conflict states.
+
+```text
+P4-A1  Offline PWA foundation (IndexedDB cache/sync-queue)      DONE
+P4-A2  Authorized offline cache wiring + idempotent sync APIs   NEXT
+P4-A3  Offline plan/visit capture + retry/conflict UI           PENDING
+P4-A4  Server version/conflict detection + reconciliation       PENDING
+P4-A5  P4 test/security gate (offline scenarios 1–8)            PENDING
+```
+
 Scope: IndexedDB, authorized offline customer/plan cache, offline plan/report capture, sync queue, retry/conflict states, and strict user/workspace local-data isolation.
+
+### P4-A1 — Offline foundation (IndexedDB workspace cache) — COMPLETE
+
+Key outcomes:
+
+- `apps/web/src/offline/` is the new offline module: `types.ts` (SyncOperation envelope, statuses `pending/sending/applied/conflict/failed/superseded`, conflicts, pull cursor contracts), `ids.ts` (sortable ULID-style `operationId` + stable per-install `clientInstanceId`), `local-db.ts` (partitioned IndexedDB store), `sync-service.ts` (`OfflineSyncService`), and `sync-react.tsx` (React provider/hook + status pill).
+- Every database is namespaced `user + workspace + local_store_version` (`LOCAL_STORE_VERSION`), with `cache`/`queue`/`meta` object stores. Queue operations survive reopens; the only data-wipe is the explicit `clearAll()` used for logout/prune — there is no implicit wipe and no `deleteObjectStore` upgrade path. Missing local-schema migrations throw `LocalSchemaMismatchError` instead of clearing.
+- `OfflineSyncService` implements the `OFFLINE-SYNC-SPEC` §24 interface: `enqueue` (newer pending `update` supersedes older ones for the same entity), `pushPending`/`push` through an injectable `SyncTransport` (applied → cache write + audit, conflict → `conflict` state with resolution options, rejected → `failed`, transport error → exponential backoff with `nextRetryAt`), `listConflicts`/`resolveConflict` (`keep_server` / `retry_with_update` / `discard_local`), `getStatus` and cursor-driven `pullChanges`.
+- The web shell now renders real offline states: the header status pill (همگام شده / آفلاین — ذخیره روی دستگاه / N در انتظار / تناقض / خطا) replaces the static "آنلاین" chip, and Settings gains a live sync card (queue/conflict/error counts, last sync time, sync-now and explicit local-clear). Demo partition `demo-user-1/demo-workspace-1` stands in for the authenticated identity until production auth wiring.
+- The P4-A1 gate (`scripts/validate-p4-offline.mjs`, `pnpm validate:p4-offline`) asserts the spec invariants (partitioned namespace, update safety, operation envelope, UI states, SW-independent queue) and runs the offline suites (14 focused tests).
+
+P4-A1 closure gate (local run, 2026-09-07):
+
+```text
+Offline focused tests                 PASS (14)
+TypeScript (apps/web)                 PASS
+Full suite gate                       PASS (pnpm check)
+```
+
+Primary acceptance sources: `OFFLINE-SYNC-SPEC.md`, `COMPETITIVE-ANALYSIS.md` §5 (OCE sync-queue/checkpoint model).
 
 ---
 

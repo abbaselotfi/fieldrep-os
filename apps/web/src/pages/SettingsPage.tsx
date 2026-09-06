@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
+import { useOfflineSync, presentSyncStatus } from '../offline/sync-react'
 import { PageHeader } from '../components/PageHeader'
 import { demoWorkspace } from '../data/demo-field-workspace'
 
 const sections = [
   ['حساب و امنیت', 'نشست‌ها، ورود و تنظیمات حساب کاربری'],
   ['فضای کاری', `${demoWorkspace.workspace} · ${demoWorkspace.territory}`],
-  ['آفلاین و همگام‌سازی', 'Cache مجاز، صف Sync و وضعیت آخرین همگام‌سازی'],
   ['زبان و منطقه', 'فارسی · تقویم شمسی · Asia/Tehran'],
 ] as const
 
@@ -21,6 +21,12 @@ function Toggle({ enabled, onChange, label }: { enabled: boolean; onChange: () =
 export function SettingsPage() {
   const [planNotifications, setPlanNotifications] = useState(true)
   const [syncNotifications, setSyncNotifications] = useState(true)
+  const { ready, status, syncNow, clearLocalData } = useOfflineSync()
+  const presentation = presentSyncStatus(status, ready)
+  const pendingCount = status?.pendingCount ?? 0
+  const conflictCount = status?.conflictCount ?? 0
+  const failedCount = status?.failedCount ?? 0
+  const lastSyncAt = status?.lastSyncAt ?? null
 
   return (
     <section className="space-y-6">
@@ -43,7 +49,10 @@ export function SettingsPage() {
 
           <div className="mt-5 grid grid-cols-2 gap-2">
             <div className="rounded-2xl bg-[var(--surface-soft)] p-3.5"><p className="text-[10px] text-[var(--text-tertiary)]">سیکل فعال</p><p className="mt-1 text-xs font-black">{demoWorkspace.cycle}</p></div>
-            <div className="rounded-2xl bg-[var(--success-soft)] p-3.5"><p className="text-[10px] text-[var(--text-tertiary)]">Sync</p><p className="mt-1 text-xs font-black text-[var(--success)]">فعال</p></div>
+            <div className={['rounded-2xl p-3.5', status?.state === 'synced' ? 'bg-[var(--success-soft)]' : 'bg-[var(--surface-soft)]'].join(' ')}>
+              <p className="text-[10px] text-[var(--text-tertiary)]">وضعیت Sync</p>
+              <p className={['mt-1 text-xs font-black', status?.state === 'synced' ? 'text-[var(--success)]' : ''].join(' ')}>{ready ? presentation.label : 'در حال آماده‌سازی'}</p>
+            </div>
           </div>
 
           <div className="mt-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
@@ -70,6 +79,63 @@ export function SettingsPage() {
             </div>
           </article>
 
+<article className="app-card p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold text-[var(--text-tertiary)]">آفلاین و همگام‌سازی</p>
+                <h2 className="mt-1 text-base font-black">وضعیت ذخیره محلی</h2>
+              </div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-soft)] px-3 py-1.5 text-[11px] font-bold text-[var(--text-secondary)]">
+                <span className={`h-2 w-2 rounded-full ${presentation.dotClass}`} />
+                {ready ? presentation.label : 'در حال آماده‌سازی'}
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-3.5">
+                <p className="text-[10px] text-[var(--text-tertiary)]">در صف</p>
+                <p className="mt-1 text-sm font-black">{pendingCount.toLocaleString('fa-IR')}</p>
+              </div>
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-3.5">
+                <p className="text-[10px] text-[var(--text-tertiary)]">تناقض</p>
+                <p className={['mt-1 text-sm font-black', conflictCount > 0 ? 'text-[var(--danger)]' : ''].join(' ')}>{conflictCount.toLocaleString('fa-IR')}</p>
+              </div>
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-3.5">
+                <p className="text-[10px] text-[var(--text-tertiary)]">خطا</p>
+                <p className={['mt-1 text-sm font-black', failedCount > 0 ? 'text-[var(--danger)]' : ''].join(' ')}>{failedCount.toLocaleString('fa-IR')}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[11px] leading-6 text-[var(--text-tertiary)]">
+                {lastSyncAt !== null
+                  ? `آخرین همگام‌سازی: ${new Date(lastSyncAt).toLocaleString('fa-IR')}`
+                  : 'هنوز همگام‌سازی انجام نشده است'}
+                <br />
+                داده‌ها در IndexedDB و جداشده از سایر کاربران/ورک‌اسپیس‌ها ذخیره می‌شوند.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void syncNow()}
+                  className="inline-flex min-h-10 items-center rounded-2xl bg-[var(--accent)] px-4 text-xs font-extrabold text-white"
+                >
+                  همگام‌سازی اکنون
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('تمامی داده‌های آفلاین این دستگاه پاک می‌شود. ادامه می‌دهید؟')) {
+                      void clearLocalData()
+                    }
+                  }}
+                  className="inline-flex min-h-10 items-center rounded-2xl border border-[var(--border-strong)] px-4 text-xs font-bold text-[var(--danger)]"
+                >
+                  پاکسازی حافظه محلی
+                </button>
+              </div>
+            </div>
+          </article>
           <div className="grid gap-3 md:grid-cols-2">
             {sections.map(([title, description]) => (
               <button key={title} type="button" className="app-card app-card-interactive flex min-h-24 items-center justify-between p-5 text-right">

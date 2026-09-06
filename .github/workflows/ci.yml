@@ -50,6 +50,9 @@ jobs:
       - name: Validate P3 operational calendar
         run: pnpm validate:p3-calendar
 
+      - name: Validate P4 offline foundation
+        run: pnpm validate:p4-offline
+
       - name: Typecheck
         run: pnpm typecheck
 
