@@ -61,22 +61,27 @@ export function createSyncPullProvider(
   fetchImpl: typeof fetch = fetch,
 ): SyncPullProvider {
   return {
-    async fetchChanges(dataset: string, afterCursor?: string): Promise<SyncPullResponse> {
+        async fetchChanges(dataset: string, afterCursor?: string): Promise<SyncPullResponse> {
       const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase
       const query = new URLSearchParams({ datasets: dataset })
       if (afterCursor !== undefined && afterCursor !== '') {
         query.set('cursor', afterCursor)
       }
-      const response = await fetchImpl(
-        `${base}/workspaces/${encodeURIComponent(workspaceId)}${SYNC_CHANGES_PATH}?${query.toString()}`,
-        { credentials: 'include', headers: { accept: 'application/json' } },
-      )
+      let response: Response
+      try {
+        response = await fetchImpl(
+          `${base}/workspaces/${encodeURIComponent(workspaceId)}${SYNC_CHANGES_PATH}?${query.toString()}`,
+          { credentials: 'include', headers: { accept: 'application/json' } },
+        )
+      } catch (error) {
+        throw new Error(`sync pull failed: ${error instanceof Error ? error.message : String(error)}`)
+      }
 
       if (!response.ok) {
         throw new Error(`sync pull failed with status ${response.status}`)
       }
 
-            const payload = (await response.json()) as {
+      const payload = (await response.json()) as {
         serverTime?: string
         datasets?: Record<string, { records?: Array<{ entityId: string; record: unknown }>; count?: number }>
       }
@@ -111,4 +116,44 @@ export async function hydrateCacheFromSnapshot(
 ): Promise<void> {
   const provider = createSyncPullProvider(workspaceId, apiBase, fetchImpl)
   await service.pullChanges(provider, datasets)
+}
+
+/**
+ * Authorized reference-data hydration (P4-A3).
+ *
+ * Pulls the field user's workspace-scoped reference datasets (customers,
+ * products, calendar activities) in a single batch request, then persists them
+ * into the partitioned IndexedDB cache. Mirrors the Veeva Vault / IQVIA OCE
+ * "authorized snapshot" pattern: the server only ever returns records the user
+ * is permitted to see, and the cursor (`serverTime`) advances atomically.
+ *
+ * Datasets returned here are cache/reference data — replaceable per dataset
+ * (OFFLINE-SYNC-SPEC §5), never part of the mutation queue.
+ */
+export const AUTHORIZED_REFERENCE_DATASETS = [
+  'customers',
+  'products',
+  'calendar-activities',
+] as const
+
+export interface HydrateReferenceResult {
+  totalRecords: number
+  datasetsPulled: number
+  serverTime?: string | undefined
+}
+
+export async function hydrateAuthorizedReferenceData(
+  service: OfflineSyncService,
+  workspaceId: string,
+  apiBase: string,
+  fetchImpl: typeof fetch = fetch,
+  datasets: readonly string[] = [...AUTHORIZED_REFERENCE_DATASETS],
+): Promise<HydrateReferenceResult> {
+  const provider = createSyncPullProvider(workspaceId, apiBase, fetchImpl)
+  const summary = await service.pullChanges(provider, datasets)
+  return {
+    totalRecords: summary.recordsApplied,
+    datasetsPulled: summary.datasetsPulled,
+    serverTime: summary.serverTime,
+  }
 }

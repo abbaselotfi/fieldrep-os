@@ -106,14 +106,21 @@ export function SettingsPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-[11px] leading-6 text-[var(--text-tertiary)]">
-                {lastSyncAt !== null
-                  ? `آخرین همگام‌سازی: ${new Date(lastSyncAt).toLocaleString('fa-IR')}`
-                  : 'هنوز همگام‌سازی انجام نشده است'}
-                <br />
-                داده‌ها در IndexedDB و جداشده از سایر کاربران/ورک‌اسپیس‌ها ذخیره می‌شوند.
-              </p>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] leading-6 text-[var(--text-tertiary)]">
+                  {lastSyncAt !== null
+                    ? `آخرین همگام‌سازی: ${new Date(lastSyncAt).toLocaleString('fa-IR')}`
+                    : 'هنوز همگام‌سازی انجام نشده است'}
+                  <br />
+                  داده‌ها در IndexedDB و جداشده از سایر کاربران/ورک‌اسپیس‌ها ذخیره می‌شوند.
+                </p>
+                <p className="text-[11px] leading-6 text-[var(--text-tertiary)]">
+                  کاربر مجاز: فقط داده‌های مشمول‌صلاحیت شما از سرور بارگیری می‌شوند.
+                  <br />
+                  حالت آفلاین: می‌توانید برنامه‌ریزی، بازدید و فعالیت کنید و در صف منتظر بمانند.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"

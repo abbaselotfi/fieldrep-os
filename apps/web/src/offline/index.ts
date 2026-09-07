@@ -18,4 +18,11 @@ export type {
   SyncTransport,
 } from './sync-service'
 export { demoOfflinePartition } from './demo-partition'
-export { createSyncPullProvider, HttpSyncTransport, hydrateCacheFromSnapshot } from './http-sync'
+export {
+  AUTHORIZED_REFERENCE_DATASETS,
+  createSyncPullProvider,
+  hydrateAuthorizedReferenceData,
+  hydrateCacheFromSnapshot,
+  HttpSyncTransport,
+} from './http-sync'
+export type { HydrateReferenceResult } from './http-sync'
