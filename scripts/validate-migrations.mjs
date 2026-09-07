@@ -133,6 +133,12 @@ applyMigrations(
     'leave_requests',
     'business_trips',
     'calendar_closures',
+    'sync_operations',
+    'calendar_activities',
+    'calendar_activity_targets',
+    'leave_requests',
+    'business_trips',
+    'calendar_closures',
   ],
   (db) => {
     const now = 1_780_000_000_000
@@ -512,5 +518,49 @@ applyMigrations(
     if (implicitCalendarSeed !== undefined) {
       throw new Error('workspace working calendar must only exist after an explicit policy write')
     }
+// -- P4-A2: offline sync idempotency ledger -----------------------------
+
+    db.prepare(
+      `INSERT INTO sync_operations
+        (operation_id, workspace_id, user_id, entity_type, entity_id, operation_type,
+         result_json, status, client_occurred_at, applied_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', ?, ?)`,
+    ).run(
+      '0000000000001abcdefghjkm',
+      'workspace-a',
+      'user-1',
+      'plan_entry',
+      'plan-sync-1',
+      'create',
+      JSON.stringify({ id: 'plan-sync-1' }),
+      now - 1_000,
+      now,
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO sync_operations
+              (operation_id, workspace_id, user_id, entity_type, entity_id, operation_type,
+               result_json, status, applied_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', ?)`,
+          )
+          .run('0000000000001abcdefghjkm', 'workspace-a', 'user-1', 'visit', 'visit-1', 'create', '{}', now),
+      'sync operation ids must be globally unique (idempotency key)',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO sync_operations
+              (operation_id, workspace_id, user_id, entity_type, entity_id, operation_type,
+               result_json, status, applied_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'applied', ?)`,
+          )
+          .run('0000000000002abcdefghjkl', 'workspace-b', 'user-1', 'visit', 'visit-1', 'create', '{}', now),
+      'sync ledger rows cannot claim another workspace',
+    )
   },
 )

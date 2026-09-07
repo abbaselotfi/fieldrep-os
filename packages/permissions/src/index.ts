@@ -21,6 +21,8 @@ export const FIELD_USER_PERMISSIONS = {
   activityReadOwn: 'activities.read.own',
   activityCreateOwn: 'activities.create.own',
   activityUpdateOwn: 'activities.update.own',
+  syncPushOwn: 'sync.push.own',
+  syncPullOwn: 'sync.pull.own',
   settingsUpdateOwn: 'settings.update.own',
 } as const satisfies Record<string, PermissionKey>
 

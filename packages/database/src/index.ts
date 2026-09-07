@@ -45,3 +45,11 @@ export type {
   PersistWorkbookImportPreviewInput,
 } from './workbook-import-repository'
 export { WorkspaceWorkbookImportRepository } from './workbook-import-repository'
+export type {
+  RecordedSyncOperation,
+  RecordSyncOperationInput,
+  SyncIdempotencyRepository,
+  SyncOperationEntityType,
+  SyncOperationRecordType,
+} from './sync-repository'
+export { WorkspaceSyncRepository } from './sync-repository'

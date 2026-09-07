@@ -12,8 +12,10 @@ export { OfflineSyncService } from './sync-service'
 export type {
   SyncEnqueueInput,
   SyncPullProvider,
+  SyncPullResponse,
   SyncSendOutcome,
   SyncServiceOptions,
   SyncTransport,
 } from './sync-service'
 export { demoOfflinePartition } from './demo-partition'
+export { createSyncPullProvider, HttpSyncTransport, hydrateCacheFromSnapshot } from './http-sync'

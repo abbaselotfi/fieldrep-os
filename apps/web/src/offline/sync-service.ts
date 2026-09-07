@@ -23,6 +23,20 @@ import type {
   SyncStatus,
 } from './types'
 
+export type {
+  SyncConflict,
+  SyncConflictResolution,
+  SyncOperation,
+  SyncOperationStatus,
+  SyncOperationType,
+  SyncPullChange,
+  SyncPullResponse,
+  SyncPullSummary,
+  SyncPushSummary,
+  SyncState,
+  SyncStatus,
+}
+
 export interface SyncTransport {
   send(operation: SyncOperation): Promise<SyncSendOutcome>
 }
