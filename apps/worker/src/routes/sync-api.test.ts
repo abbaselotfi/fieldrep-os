@@ -275,9 +275,21 @@ describe('sync API', () => {
     expect(body.datasets?.products?.count).toBe(0)
   })
 
-  it('returns 403 for pull without sync.pull.own', async () => {
+    it('returns 403 for pull without sync.pull.own', async () => {
     const app = createSyncApi(deps(repositories(), authContext({ permissions: [] })))
     const response = await app.request('/workspaces/workspace-a/sync/changes')
     expect(response.status).toBe(403)
+  })
+
+  it('accepts an optional cursor query param on pull (P4-A4 incremental)', async () => {
+    const app = createSyncApi(deps(repositories()))
+    const response = await app.request(
+      '/workspaces/workspace-a/sync/changes?datasets=plans&cursor=2026-09-07T09:00:00.000Z',
+    )
+
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as { serverTime?: string; datasets?: Record<string, unknown> }
+    expect(body.serverTime).toBeDefined()
+    expect(body.datasets?.plans).toBeDefined()
   })
 })

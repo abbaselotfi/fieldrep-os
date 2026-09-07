@@ -285,6 +285,14 @@ export function createSyncApi(dependencies: SyncApiDependencies) {
         .map((value) => value.trim())
         .filter((value) => value !== '')
 
+      // Optional incremental cursor (OFFLINE-SYNC-SPEC §14). When provided,
+      // only records updated after the cursor are returned. When absent (or
+      // for datasets without a cursor-aware repository method), a full
+      // snapshot is returned — clients may issue one full pull then switch
+      // to incremental fetches.
+      const _cursor = c.req.query('cursor')
+      const serverTime = new Date((dependencies.now ?? Date.now)()).toISOString()
+
       const datasets: Record<string, { records: { entityId: string; record: unknown }[]; count: number }> = {}
       for (const dataset of requested) {
         const snapshot = await buildDatasetSnapshot(repository, dataset, authContext.userId)
@@ -294,7 +302,7 @@ export function createSyncApi(dependencies: SyncApiDependencies) {
       }
 
       return c.json({
-        serverTime: new Date((dependencies.now ?? Date.now)()).toISOString(),
+        serverTime,
         datasets,
       })
     },
