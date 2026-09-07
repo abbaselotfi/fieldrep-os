@@ -281,7 +281,7 @@ describe('sync API', () => {
     expect(response.status).toBe(403)
   })
 
-  it('accepts an optional cursor query param on pull (P4-A4 incremental)', async () => {
+    it('accepts an optional cursor query param on pull (P4-A4 incremental)', async () => {
     const app = createSyncApi(deps(repositories()))
     const response = await app.request(
       '/workspaces/workspace-a/sync/changes?datasets=plans&cursor=2026-09-07T09:00:00.000Z',
@@ -291,5 +291,49 @@ describe('sync API', () => {
     const body = (await response.json()) as { serverTime?: string; datasets?: Record<string, unknown> }
     expect(body.serverTime).toBeDefined()
     expect(body.datasets?.plans).toBeDefined()
+  })
+
+  it('passes the cursor as fromDate to incremental repository methods', async () => {
+    let receivedFromDate: string | undefined
+    const repo = repositories({
+      plans: planRepository({
+        listEntries: async (_userId, from, _to) => {
+          receivedFromDate = from
+          return []
+        },
+      }),
+      visits: visitRepository({
+        listVisits: async () => [],
+      }),
+    })
+
+    const app = createSyncApi(deps(repo))
+    const response = await app.request(
+      '/workspaces/workspace-a/sync/changes?datasets=plans,visits&cursor=2026-09-07T09:00:00.000Z',
+    )
+
+    expect(response.status).toBe(200)
+    expect(receivedFromDate).toBe('2026-09-07T09:00:00.000Z')
+  })
+
+  it('pulls full snapshot when no cursor is provided', async () => {
+    let receivedFromDate: string | undefined
+    const repo = repositories({
+      plans: planRepository({
+        listEntries: async (_userId, from, _to) => {
+          receivedFromDate = from
+          return [plan]
+        },
+      }),
+      visits: visitRepository(),
+    })
+
+    const app = createSyncApi(deps(repo))
+    const response = await app.request('/workspaces/workspace-a/sync/changes?datasets=plans')
+
+    expect(response.status).toBe(200)
+    expect(receivedFromDate).toBe('2000-01-01')
+    const body = (await response.json()) as { datasets?: Record<string, { count: number }> }
+    expect(body.datasets?.plans?.count).toBe(1)
   })
 })

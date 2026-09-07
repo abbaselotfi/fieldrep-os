@@ -285,17 +285,17 @@ export function createSyncApi(dependencies: SyncApiDependencies) {
         .map((value) => value.trim())
         .filter((value) => value !== '')
 
-      // Optional incremental cursor (OFFLINE-SYNC-SPEC §14). When provided,
+            // Optional incremental cursor (OFFLINE-SYNC-SPEC §14). When provided,
       // only records updated after the cursor are returned. When absent (or
       // for datasets without a cursor-aware repository method), a full
       // snapshot is returned — clients may issue one full pull then switch
       // to incremental fetches.
-      const _cursor = c.req.query('cursor')
+      const cursor = c.req.query('cursor')
       const serverTime = new Date((dependencies.now ?? Date.now)()).toISOString()
 
       const datasets: Record<string, { records: { entityId: string; record: unknown }[]; count: number }> = {}
       for (const dataset of requested) {
-        const snapshot = await buildDatasetSnapshot(repository, dataset, authContext.userId)
+        const snapshot = await buildDatasetChanges(repository, dataset, authContext.userId, cursor)
         if (snapshot !== null) {
           datasets[dataset] = snapshot
         }
@@ -559,19 +559,29 @@ const PULL_DATASETS = new Set(['customers', 'plans', 'visits', 'products', 'cale
 const WIDE_FROM = '2000-01-01'
 const WIDE_TO = '2100-12-31'
 
-async function buildDatasetSnapshot(
+/**
+ * Build a dataset snapshot, optionally scoped to records updated after the
+ * given cursor (OFFLINE-SYNC-SPEC §14 incremental delta). For datasets without
+ * a cursor-aware repository method (customers, products, calendar), a full
+ * snapshot is returned — these reference sets are small and infrequently
+ * changed by field users.
+ */
+async function buildDatasetChanges(
   repository: SyncWorkspaceRepositories,
   dataset: string,
   userId: UserId,
+  cursor?: string,
 ): Promise<{ records: { entityId: string; record: unknown }[]; count: number } | null> {
   if (!PULL_DATASETS.has(dataset)) return null
 
+  const from = cursor ?? WIDE_FROM
   let records: { entityId: string; record: unknown }[] = []
+
   if (dataset === 'plans') {
-    const entries = await repository.plans.listEntries(userId, WIDE_FROM, WIDE_TO)
+    const entries = await repository.plans.listEntries(userId, from, WIDE_TO)
     records = entries.map((entry) => ({ entityId: entry.id, record: entry }))
   } else if (dataset === 'visits') {
-    const visits = await repository.visits.listVisits(userId, WIDE_FROM, WIDE_TO)
+    const visits = await repository.visits.listVisits(userId, from, WIDE_TO)
     records = visits.map((visit) => ({ entityId: visit.id, record: visit }))
   } else if (dataset === 'products') {
     const products = await repository.visits.listProducts()
