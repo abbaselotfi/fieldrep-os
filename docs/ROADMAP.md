@@ -315,6 +315,23 @@ Scope: multiple customer locations, provider-independent map adapter, Neshan fir
 
 Scope: check-in coordinates/accuracy, selected target, geofence distance, `verified / nearby / unverified / outside`, offline evidence, capture-vs-sync timestamps and company/workspace feature toggle.
 
+### Status
+
+| Step | Description | Status |
+|------|-------------|--------|
+| P6-A1 | Location evidence foundation — domain model + validation, `visit_location_evidence` table, evidence push/pull endpoints, device GPS capture helper | DONE (2026-09-09) |
+
+### P6-A1 — Location Evidence Foundation (DONE)
+
+- Domain (`packages/domain/src/location-evidence.ts`): `LocationEvidence` model, WGS-84 validation (`validateLocationEvidenceInput`), capture-mode taxonomy `gps / network / manual / offline` derived from connectivity + accuracy (`deriveLocationCaptureMode`).
+- Migration `0009_visit_location_evidence.sql`: one evidence record per visit (`UNIQUE(visit_id)`), FK to `visits`, coordinate CHECK constraints, owner index.
+- Repository `WorkspaceLocationEvidenceRepository`: ownership-gated record (tenant isolation), duplicate rejection, verbatim client capture + `server_received_at` receipt time (Sanofi-style evidence chain).
+- API (`apps/worker` visit-api): `POST /workspaces/:id/visits/:visitId/location-evidence` (permission `visits.create.own`, stable 400/404/409 error mapping) and `GET .../location-evidence` (`visits.read.own`).
+- Web client: `OwnVisitHttpClient.recordLocationEvidence/locationEvidence` and `capture-location.ts` Geolocation wrapper with stable error codes (`geolocation_unsupported / permission_denied / position_unavailable / timeout`).
+- Competitive basis: IQVIA OCE GPS visit evidence, Sanofi offline capture flags, Veeva tenant scoping (`COMPETITIVE-ANALYSIS.md` §6).
+
+Acceptance: 40 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
 ---
 
 ## P7 — AI-Assisted Planning

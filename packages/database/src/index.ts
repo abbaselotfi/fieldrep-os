@@ -53,3 +53,8 @@ export type {
   SyncOperationRecordType,
 } from './sync-repository'
 export { WorkspaceSyncRepository } from './sync-repository'
+export type {
+  LocationEvidenceRepository,
+  RecordLocationEvidenceInput,
+} from './location-evidence-repository'
+export { WorkspaceLocationEvidenceRepository } from './location-evidence-repository'

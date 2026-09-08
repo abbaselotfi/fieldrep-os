@@ -134,11 +134,7 @@ applyMigrations(
     'business_trips',
     'calendar_closures',
     'sync_operations',
-    'calendar_activities',
-    'calendar_activity_targets',
-    'leave_requests',
-    'business_trips',
-    'calendar_closures',
+    'visit_location_evidence',
   ],
   (db) => {
     const now = 1_780_000_000_000

@@ -48,6 +48,23 @@ export interface CreateOwnVisitRequest {
   productCalls: readonly VisitApiProductCall[]
 }
 
+export interface LocationEvidenceApi {
+  id: string
+  workspaceId: string
+  visitId: string
+  ownerUserId: string
+  coordinates: {
+    latitude: number
+    longitude: number
+    accuracy: number | null
+  }
+  altitude: number | null
+  captureMode: 'gps' | 'network' | 'manual' | 'offline'
+  capturedAt: number
+  clientOccurredAt: string
+  serverReceivedAt: number | null
+}
+
 export class VisitApiError extends Error {
   constructor(
     readonly status: number,
@@ -102,6 +119,42 @@ export class OwnVisitHttpClient {
       `${this.workspaceUrl()}/visits/${encodeURIComponent(visitId)}/cancel`,
       { method: 'POST' },
     )
+  }
+
+  async locationEvidence(visitId: string): Promise<LocationEvidenceApi | null> {
+    try {
+      const payload = await this.request<{ evidence: LocationEvidenceApi }>(
+        `${this.workspaceUrl()}/visits/${encodeURIComponent(visitId)}/location-evidence`,
+      )
+      return payload.evidence
+    } catch (error) {
+      if (error instanceof VisitApiError && error.status === 404) return null
+      throw error
+    }
+  }
+
+  async recordLocationEvidence(
+    visitId: string,
+    input: {
+      id: string
+      latitude: number
+      longitude: number
+      accuracyMeters: number | null
+      altitudeMeters: number | null
+      captureMode: 'gps' | 'network' | 'manual' | 'offline'
+      capturedAt: number
+      clientOccurredAt: string
+    },
+  ): Promise<LocationEvidenceApi> {
+    const payload = await this.request<{ evidence: LocationEvidenceApi }>(
+      `${this.workspaceUrl()}/visits/${encodeURIComponent(visitId)}/location-evidence`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(input),
+      },
+    )
+    return payload.evidence
   }
 
   private workspaceUrl(): string {

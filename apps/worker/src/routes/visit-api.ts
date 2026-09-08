@@ -1,6 +1,7 @@
 import type {
   CustomerId,
   CustomerVisitCounters,
+  LocationEvidence,
   LocationId,
   PlanEntryId,
   ProductSummary,
@@ -43,6 +44,18 @@ export interface VisitApiRepository {
     fromDate: string,
     toDate: string,
   ): Promise<CustomerVisitCounters>
+  recordLocationEvidence(input: {
+    visitId: VisitId
+    ownerUserId: UserId
+    latitude: number
+    longitude: number
+    accuracyMeters: number | null
+    altitudeMeters: number | null
+    captureMode: LocationEvidence['captureMode']
+    capturedAt: number
+    clientOccurredAt: string
+  }): Promise<LocationEvidence>
+  getLocationEvidence(ownerUserId: UserId, visitId: VisitId): Promise<LocationEvidence | null>
 }
 
 export interface VisitApiDependencies {
@@ -71,6 +84,17 @@ const createVisitSchema = z.object({
   notes: z.string().trim().max(5000).optional(),
   locationId: z.string().min(1).optional(),
   productCalls: z.array(productCallSchema).max(20).default([]),
+})
+
+const locationEvidenceSchema = z.object({
+  id: z.string().min(1).max(64),
+  latitude: z.number().finite().min(-90).max(90),
+  longitude: z.number().finite().min(-180).max(180),
+  accuracyMeters: z.number().finite().min(0).nullable(),
+  altitudeMeters: z.number().finite().nullable(),
+  captureMode: z.enum(['gps', 'network', 'manual', 'offline']),
+  capturedAt: z.number().int().positive(),
+  clientOccurredAt: z.string().min(1),
 })
 
 export function createVisitApi(dependencies: VisitApiDependencies) {
@@ -170,6 +194,49 @@ export function createVisitApi(dependencies: VisitApiDependencies) {
     },
   )
 
+  app.post(
+    '/workspaces/:workspaceId/visits/:visitId/location-evidence',
+    requireWorkspacePermission('visits.create.own'),
+    async (c) => {
+      const parsed = locationEvidenceSchema.safeParse(await readJson(c.req.raw))
+      if (!parsed.success) return c.json({ error: 'invalid_location_evidence' }, 400)
+
+      const authContext = c.get('authContext')
+      const repository = await dependencies.repositoryForWorkspace(c.req.param('workspaceId'))
+      try {
+        const evidence = await repository.recordLocationEvidence({
+          visitId: c.req.param('visitId'),
+          ownerUserId: authContext.userId,
+          latitude: parsed.data.latitude,
+          longitude: parsed.data.longitude,
+          accuracyMeters: parsed.data.accuracyMeters,
+          altitudeMeters: parsed.data.altitudeMeters,
+          captureMode: parsed.data.captureMode,
+          capturedAt: parsed.data.capturedAt,
+          clientOccurredAt: parsed.data.clientOccurredAt,
+        })
+        return c.json({ evidence }, 201)
+      } catch (error) {
+        return locationEvidenceWriteError(c, error)
+      }
+    },
+  )
+
+  app.get(
+    '/workspaces/:workspaceId/visits/:visitId/location-evidence',
+    requireWorkspacePermission('visits.read.own'),
+    async (c) => {
+      const authContext = c.get('authContext')
+      const repository = await dependencies.repositoryForWorkspace(c.req.param('workspaceId'))
+      const evidence = await repository.getLocationEvidence(
+        authContext.userId,
+        c.req.param('visitId'),
+      )
+      if (evidence === null) return c.json({ error: 'location_evidence_not_found' }, 404)
+      return c.json({ evidence })
+    },
+  )
+
   return app
 }
 
@@ -184,6 +251,22 @@ async function readJson(request: Request): Promise<unknown> {
 function isCanonicalDate(value: string): boolean {
   const parsed = Date.parse(`${value}T00:00:00.000Z`)
   return !Number.isNaN(parsed) && new Date(parsed).toISOString().slice(0, 10) === value
+}
+
+function locationEvidenceWriteError(c: Context<AuthorizationEnv>, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+
+  if (message.startsWith('location_evidence_invalid:')) {
+    return c.json({ error: 'invalid_location_evidence' }, 400)
+  }
+  if (message.includes('location_evidence_visit_not_found')) {
+    return c.json({ error: 'visit_not_found' }, 404)
+  }
+  if (message.includes('location_evidence_conflict')) {
+    return c.json({ error: 'location_evidence_conflict' }, 409)
+  }
+
+  throw error
 }
 
 function visitWriteError(c: Context<AuthorizationEnv>, error: unknown) {

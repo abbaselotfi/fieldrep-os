@@ -54,6 +54,19 @@ const counters: CustomerVisitCounters = {
   byProduct: [{ productId: 'product-1', callCount: 7 }],
 }
 
+const evidence = {
+  id: 'evidence-1',
+  workspaceId: 'workspace-a',
+  visitId: 'visit-1',
+  ownerUserId: 'user-1',
+  coordinates: { latitude: 35.6892, longitude: 51.389, accuracy: 12 },
+  altitude: 1200,
+  captureMode: 'gps' as const,
+  capturedAt: 1_788_000_000_000,
+  clientOccurredAt: '2026-09-06T10:00:00.000Z',
+  serverReceivedAt: 1_788_000_060_000,
+}
+
 function repository(overrides: Partial<VisitApiRepository> = {}): VisitApiRepository {
   return {
     listProducts: async () => [product],
@@ -61,6 +74,8 @@ function repository(overrides: Partial<VisitApiRepository> = {}): VisitApiReposi
     createCompletedVisit: async () => visit,
     cancelVisit: async () => true,
     getCustomerCounters: async () => counters,
+    recordLocationEvidence: async () => evidence,
+    getLocationEvidence: async () => null,
     ...overrides,
   }
 }
@@ -259,5 +274,147 @@ describe('visit API', () => {
     })
 
     expect(response.status).toBe(403)
+  })
+
+  it('records location evidence with injected ownership and receipt time', async () => {
+    let received: Record<string, unknown> | undefined
+    const app = createVisitApi(
+      dependencies(
+        repository({
+          recordLocationEvidence: async (input) => {
+            received = { ...input }
+            return evidence
+          },
+        }),
+      ),
+    )
+
+    const response = await app.request(
+      '/workspaces/workspace-a/visits/visit-1/location-evidence',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: 'evidence-1',
+          latitude: 35.6892,
+          longitude: 51.389,
+          accuracyMeters: 12,
+          altitudeMeters: 1200,
+          captureMode: 'gps',
+          capturedAt: 1_788_000_000_000,
+          clientOccurredAt: '2026-09-06T10:00:00.000Z',
+        }),
+      },
+    )
+
+    expect(response.status).toBe(201)
+    expect(await response.json()).toEqual({ evidence })
+    expect(received).toMatchObject({ visitId: 'visit-1', ownerUserId: 'user-1' })
+  })
+
+  it('rejects malformed location evidence payloads', async () => {
+    const app = createVisitApi(dependencies(repository()))
+
+    const response = await app.request(
+      '/workspaces/workspace-a/visits/visit-1/location-evidence',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: 'evidence-1', latitude: 999, longitude: 0 }),
+      },
+    )
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({ error: 'invalid_location_evidence' })
+  })
+
+  it('maps unknown visits on evidence push to a stable 404', async () => {
+    const app = createVisitApi(
+      dependencies(
+        repository({
+          recordLocationEvidence: async () => {
+            throw new Error('location_evidence_visit_not_found')
+          },
+        }),
+      ),
+    )
+
+    const response = await app.request(
+      '/workspaces/workspace-a/visits/visit-missing/location-evidence',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: 'evidence-1',
+          latitude: 35.6892,
+          longitude: 51.389,
+          accuracyMeters: 12,
+          altitudeMeters: null,
+          captureMode: 'offline',
+          capturedAt: 1_788_000_000_000,
+          clientOccurredAt: '2026-09-06T10:00:00.000Z',
+        }),
+      },
+    )
+
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({ error: 'visit_not_found' })
+  })
+
+  it('maps duplicate evidence pushes to a stable conflict', async () => {
+    const app = createVisitApi(
+      dependencies(
+        repository({
+          recordLocationEvidence: async () => {
+            throw new Error('location_evidence_conflict')
+          },
+        }),
+      ),
+    )
+
+    const response = await app.request(
+      '/workspaces/workspace-a/visits/visit-1/location-evidence',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: 'evidence-2',
+          latitude: 35.6892,
+          longitude: 51.389,
+          accuracyMeters: 12,
+          altitudeMeters: null,
+          captureMode: 'gps',
+          capturedAt: 1_788_000_000_000,
+          clientOccurredAt: '2026-09-06T10:00:00.000Z',
+        }),
+      },
+    )
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({ error: 'location_evidence_conflict' })
+  })
+
+  it('returns stored evidence under read permission', async () => {
+    const app = createVisitApi(
+      dependencies(repository({ getLocationEvidence: async () => evidence })),
+    )
+
+    const response = await app.request(
+      '/workspaces/workspace-a/visits/visit-1/location-evidence',
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ evidence })
+  })
+
+  it('returns 404 when no evidence exists for the visit', async () => {
+    const app = createVisitApi(dependencies(repository()))
+
+    const response = await app.request(
+      '/workspaces/workspace-a/visits/visit-1/location-evidence',
+    )
+
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({ error: 'location_evidence_not_found' })
   })
 })

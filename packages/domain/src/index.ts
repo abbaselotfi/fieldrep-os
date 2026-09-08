@@ -180,6 +180,19 @@ export type {
 export type { CustomerVisitProgressProjection } from './visit-progress'
 export { deriveCustomerVisitProgress } from './visit-progress'
 export type {
+  LocationCaptureMode,
+  LocationCoordinates,
+  LocationEvidence,
+  LocationEvidenceValidationCode,
+  LocationEvidenceValidationIssue,
+  LocationEvidenceValidationResult,
+  CreateLocationEvidenceInput,
+} from './location-evidence'
+export {
+  deriveLocationCaptureMode,
+  validateLocationEvidenceInput,
+} from './location-evidence'
+export type {
   VisitReportBounds,
   VisitReportPeriod,
   VisitReportProductTotal,

@@ -141,4 +141,50 @@ describe('OwnVisitHttpClient', () => {
     )
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' })
   })
+
+  it('records location evidence with a JSON body on the evidence endpoint', async () => {
+    const evidence = {
+      id: 'evidence-1',
+      workspaceId: 'workspace-a',
+      visitId: 'visit-1',
+      ownerUserId: 'user-1',
+      coordinates: { latitude: 35.6892, longitude: 51.389, accuracy: 12 },
+      altitude: 1200,
+      captureMode: 'gps' as const,
+      capturedAt: 1_788_000_000_000,
+      clientOccurredAt: '2026-09-06T10:00:00.000Z',
+      serverReceivedAt: 1_788_000_060_000,
+    }
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      new Response(JSON.stringify({ evidence }), { status: 201 }),
+    )
+    const client = new OwnVisitHttpClient('workspace-a', '/api/v1', fetchImpl)
+
+    await expect(
+      client.recordLocationEvidence('visit-1', {
+        id: 'evidence-1',
+        latitude: 35.6892,
+        longitude: 51.389,
+        accuracyMeters: 12,
+        altitudeMeters: 1200,
+        captureMode: 'gps',
+        capturedAt: 1_788_000_000_000,
+        clientOccurredAt: '2026-09-06T10:00:00.000Z',
+      }),
+    ).resolves.toEqual(evidence)
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/v1/workspaces/workspace-a/visits/visit-1/location-evidence',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('returns null location evidence on 404 instead of throwing', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      new Response(JSON.stringify({ error: 'location_evidence_not_found' }), { status: 404 }),
+    )
+    const client = new OwnVisitHttpClient('workspace-a', '/api/v1', fetchImpl)
+
+    await expect(client.locationEvidence('visit-1')).resolves.toBeNull()
+  })
 })
