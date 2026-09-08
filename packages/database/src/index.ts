@@ -58,3 +58,8 @@ export type {
   RecordLocationEvidenceInput,
 } from './location-evidence-repository'
 export { WorkspaceLocationEvidenceRepository } from './location-evidence-repository'
+export type {
+  SaveVisitVerificationInput,
+  VisitVerificationRepository,
+} from './visit-verification-repository'
+export { WorkspaceVisitVerificationRepository } from './visit-verification-repository'

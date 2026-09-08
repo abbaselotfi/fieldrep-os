@@ -135,6 +135,7 @@ applyMigrations(
     'calendar_closures',
     'sync_operations',
     'visit_location_evidence',
+    'visit_verification_results',
   ],
   (db) => {
     const now = 1_780_000_000_000

@@ -192,6 +192,20 @@ export {
   deriveLocationCaptureMode,
   validateLocationEvidenceInput,
 } from './location-evidence'
+export type { GeoPoint } from './geo-distance'
+export { distanceMetersBetween } from './geo-distance'
+export type { VisitVerificationPolicy } from './visit-verification-policy'
+export {
+  DEFAULT_VISIT_VERIFICATION_POLICY,
+  normalizeVisitVerificationPolicy,
+} from './visit-verification-policy'
+export type {
+  EvaluateVisitVerificationInput,
+  VisitVerificationReason,
+  VisitVerificationResult,
+  VisitVerificationStatus,
+} from './visit-verification'
+export { evaluateVisitVerification } from './visit-verification'
 export type {
   VisitReportBounds,
   VisitReportPeriod,

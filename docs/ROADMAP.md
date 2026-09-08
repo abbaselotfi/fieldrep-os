@@ -320,6 +320,20 @@ Scope: check-in coordinates/accuracy, selected target, geofence distance, `verif
 | Step | Description | Status |
 |------|-------------|--------|
 | P6-A1 | Location evidence foundation — domain model + validation, `visit_location_evidence` table, evidence push/pull endpoints, device GPS capture helper | DONE (2026-09-09) |
+| P6-A2 | Geofence verification — haversine distance, policy thresholds, application-owned evaluation (`verified/nearby/unverified/outside`), persistence, evaluation endpoint with workspace toggle | DONE (2026-09-09) |
+
+### P6-A2 — Geofence Verification (DONE)
+
+- Domain, three small modules:
+  - `geo-distance.ts` — haversine `distanceMetersBetween` (no provider dependency; policy is application-owned per MAPS-LOCATION-SPEC §23).
+  - `visit-verification-policy.ts` — `DEFAULT_VISIT_VERIFICATION_POLICY` (verified ≤ 150 m, nearby ≤ 500 m, max accuracy 100 m) with `normalizeVisitVerificationPolicy` guards (nearby never stricter than verified).
+  - `visit-verification.ts` — `evaluateVisitVerification` producing spec §24 result shape with stable reason codes (`within_verified_radius`, `within_nearby_radius`, `beyond_nearby_radius`, `accuracy_exceeds_limit`, `target_location_missing`, `offline_capture`); accuracy participates in the decision.
+- Migration `0010_visit_verification.sql`: `visit_verification_results` (one per visit, upsert on re-evaluation, reason codes stored as JSON).
+- Repository `WorkspaceVisitVerificationRepository` (upsert + tenant-scoped read).
+- Route `visit-verification-api.ts` (separate small module): `POST /workspaces/:id/visits/:visitId/verification` (evaluate + persist, `visits.create.own`) and `GET` variant (`visits.read.own`), gated by `isVerificationEnabled(workspaceId)` feature toggle returning stable `verification_disabled`.
+- Competitive basis: OCE/Sanofi check-in verification labels, Veeva tenant scoping (`COMPETITIVE-ANALYSIS.md` §6).
+
+Acceptance: 45 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
 
 ### P6-A1 — Location Evidence Foundation (DONE)
 
