@@ -16,6 +16,9 @@ export interface DemoCustomer {
     label: string
     area: string
     address: string
+    /** Preview-only geofence target (P6-A3 demo); real targets come from customer_locations. */
+    latitude?: number
+    longitude?: number
   }[]
 }
 
@@ -60,7 +63,7 @@ export const demoCustomers: readonly DemoCustomer[] = [
     frequencyCompleted: 4,
     frequencyTarget: 6,
     locations: [
-      { label: 'مطب اصلی', area: 'احمدآباد', address: 'مشهد، احمدآباد، محدوده محتشمی' },
+      { label: 'مطب اصلی', area: 'احمدآباد', address: 'مشهد، احمدآباد، محدوده محتشمی', latitude: 35.6892, longitude: 51.389 },
       { label: 'کلینیک عصر', area: 'سجاد', address: 'مشهد، سجاد، محدوده بهارستان' },
     ],
   },

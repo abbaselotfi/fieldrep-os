@@ -12,6 +12,11 @@ import {
   previewVisitProducts,
   type PreviewVisitActual,
 } from '../features/visits/preview-visit'
+import { VisitLocationBadge } from '../features/visits/VisitLocationBadge'
+import {
+  runVisitLocationCheck,
+  type VisitLocationCheckResult,
+} from '../features/visits/visit-location-flow'
 
 const previewPlans = createPreviewPlanSeed()
 
@@ -33,6 +38,9 @@ export function VisitPage() {
   }))
   const [submitted, setSubmitted] = useState<PreviewVisitActual | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [locationCheck, setLocationCheck] = useState<VisitLocationCheckResult | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [locating, setLocating] = useState(false)
 
   const customer = getDemoCustomer(customerId)
   const selectedPlan = useMemo(
@@ -45,12 +53,35 @@ export function VisitPage() {
     setPlanEntryId(nextPlanEntryId)
     setSubmitted(null)
     setSubmitError(null)
+    setLocationCheck(null)
+    setLocationError(null)
     if (nextPlanEntryId === '') return
 
     const plan = previewPlans.find((entry) => entry.id === nextPlanEntryId)
     if (plan === undefined) return
     setCustomerId(plan.customerId)
     setVisitDate(plan.planDate)
+  }
+
+  async function captureLocation() {
+    setLocating(true)
+    setLocationError(null)
+    try {
+      const location = customer.locations[0]
+      const result = await runVisitLocationCheck({
+        online: navigator.onLine,
+        targetPoint:
+          location?.latitude === undefined || location?.longitude === undefined
+            ? null
+            : { latitude: location.latitude, longitude: location.longitude },
+      })
+      setLocationCheck(result)
+    } catch (error) {
+      setLocationCheck(null)
+      setLocationError(error instanceof Error ? error.message : 'location_capture_failed')
+    } finally {
+      setLocating(false)
+    }
   }
 
   function setProductCount(productId: string, nextCount: number) {
@@ -221,6 +252,36 @@ export function VisitPage() {
           </div>
         </fieldset>
 
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold">موقعیت مکانی ویزیت</span>
+            <button
+              type="button"
+              onClick={() => { void captureLocation() }}
+              disabled={locating}
+              className="min-h-10 rounded-xl bg-[var(--accent-soft)] px-4 text-xs font-black text-[var(--accent-strong)] disabled:opacity-60"
+            >
+              {locating ? 'در حال دریافت موقعیت…' : '📍 ثبت موقعیت و بررسی محدوده'}
+            </button>
+          </div>
+          {locationCheck === null ? null : (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <VisitLocationBadge result={locationCheck.verification} />
+              <span className="text-[11px] text-[var(--text-tertiary)]">
+                حالت ثبت: {locationCheck.captureMode === 'gps' ? 'GPS' : locationCheck.captureMode === 'network' ? 'شبکه' : 'آفلاین'}
+                {locationCheck.fix.accuracyMeters === null
+                  ? ''
+                  : ` · دقت: ${Math.round(locationCheck.fix.accuracyMeters).toLocaleString('fa-IR')} متر`}
+              </span>
+            </div>
+          )}
+          {locationError === null ? null : (
+            <p role="alert" className="mt-2 text-[11px] font-bold text-[var(--danger)]">
+              خطای موقعیت: {locationError}
+            </p>
+          )}
+        </div>
+
         <label className="block">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-bold">یادداشت ویزیت</span>
@@ -260,7 +321,7 @@ export function VisitPage() {
       </form>
 
       <p className="px-1 text-[11px] leading-6 text-[var(--text-tertiary)]">
-        این صفحه روی GitHub Pages از Preview state استفاده می‌کند. Client واقعی cookie-authenticated برای Worker پس از استقرار محیط ایزوله به API متصل می‌شود؛ GPS و Voice نیز فعلاً UI-ready هستند و داده ساختگی به‌عنوان evidence ذخیره نمی‌شود.
+        این صفحه روی GitHub Pages از Preview state استفاده می‌کند. Client واقعی cookie-authenticated برای Worker پس از استقرار محیط ایزوله به API متصل می‌شود؛ دکمه ثبت موقعیت، GPS واقعی دستگاه را می‌خواند و سیاست geofence دامنه را روی هدف Preview اعمال می‌کند، اما تا اتصال به API واقعی فقط روی دستگاه شما ارزیابی می‌شود و به‌عنوان evidence ذخیره نمی‌شود.
       </p>
     </section>
   )

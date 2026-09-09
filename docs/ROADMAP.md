@@ -321,6 +321,7 @@ Scope: check-in coordinates/accuracy, selected target, geofence distance, `verif
 |------|-------------|--------|
 | P6-A1 | Location evidence foundation — domain model + validation, `visit_location_evidence` table, evidence push/pull endpoints, device GPS capture helper | DONE (2026-09-09) |
 | P6-A2 | Geofence verification — haversine distance, policy thresholds, application-owned evaluation (`verified/nearby/unverified/outside`), persistence, evaluation endpoint with workspace toggle | DONE (2026-09-09) |
+| P6-A3 | Check-in UI flow — one-shot capture+evaluate module, Persian verification badge, wired into the visit call-report page | DONE (2026-09-09) |
 
 ### P6-A2 — Geofence Verification (DONE)
 
@@ -334,6 +335,16 @@ Scope: check-in coordinates/accuracy, selected target, geofence distance, `verif
 - Competitive basis: OCE/Sanofi check-in verification labels, Veeva tenant scoping (`COMPETITIVE-ANALYSIS.md` §6).
 
 Acceptance: 45 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
+### P6-A3 — Check-in UI Flow (DONE)
+
+- `apps/web/src/features/visits/visit-location-flow.ts`: `runVisitLocationCheck` composes device capture + capture-mode derivation + domain geofence evaluation in one injectable, testable call (capture function and clock injectable).
+- `apps/web/src/features/visits/VisitLocationBadge.tsx`: Persian status badge (`تأیید شده / نزدیک / تأییدنشده / خارج از محدوده`) with distance display, semantic color tokens, screen-reader reason text; pure helpers `verificationStatusLabel`/`verificationReasonLabels` exported for reuse.
+- `VisitPage.tsx`: small integration — «ثبت موقعیت و بررسی محدوده» button, pending/error states, badge row; state resets on plan change; preview footnote updated (real device GPS is evaluated against the domain policy, but not persisted until the real API connection).
+- Demo target: optional `latitude/longitude` on preview customer locations (only the first customer carries coordinates → honest `target_location_missing` for the rest).
+- Competitive basis: OCE one-tap check-in verification UX.
+
+Acceptance: 46 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
 
 ### P6-A1 — Location Evidence Foundation (DONE)
 
