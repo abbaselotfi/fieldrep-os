@@ -316,3 +316,9 @@ export type {
   LegacyWorkbookTabularSnapshot,
 } from './legacy-workbook-adapter'
 export { adaptLegacyWorkbookTabular } from './legacy-workbook-adapter'
+export type {
+  MemberDrillDownFact,
+  MemberDrillDownRow,
+  MemberDrillDownSummary,
+} from './member-drill-down'
+export { buildMemberDrillDown } from './member-drill-down'

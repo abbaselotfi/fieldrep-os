@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import {
+  buildMemberDrillDown,
   buildTeamProgressSummary,
   summarizeVerifications,
   type TeamMemberProgress,
@@ -9,6 +10,8 @@ import {
 
 import { MetricCard } from '../components/MetricCard'
 import { PageHeader } from '../components/PageHeader'
+import { demoMemberCoverageFacts } from '../features/team/demo-member-coverage'
+import { MemberDrillDownTable } from '../features/team/MemberDrillDownTable'
 
 /**
  * Supervisor workspace demo (P8-A1) — read-only team rollups.
@@ -35,6 +38,16 @@ const demoVerifications: readonly VerificationEntry[] = [
 export function TeamPage() {
   const progress = useMemo(() => buildTeamProgressSummary(demoTeamMembers), [])
   const verifications = useMemo(() => summarizeVerifications(demoVerifications), [])
+  const [selectedMember, setSelectedMember] = useState<string | null>(null)
+  const drillDown = useMemo(
+    () => {
+      if (selectedMember === null) return null
+      const known = demoTeamMembers.some((member) => member.userId === selectedMember)
+      if (!known) return null
+      return buildMemberDrillDown(selectedMember, demoMemberCoverageFacts)
+    },
+    [selectedMember],
+  )
   const planLabel = `${Math.round(progress.planCompletionRatio * 100).toLocaleString('fa-IR')}٪`
   const verifiedLabel = `${Math.round(verifications.verifiedRatio * 100).toLocaleString('fa-IR')}٪`
 
@@ -43,7 +56,7 @@ export function TeamPage() {
       <PageHeader
         eyebrow="SUPERVISOR"
         title="داشبورد تیم"
-        description="تجمیع فقط‌خواندنی پیشرفت پلن، ویزیت و تأیید موقعیت اعضا؛ drill-down و export در گام‌های بعدی."
+        description="تجمیع فقط‌خواندنی پیشرفت پلن، ویزیت و تأیید موقعیت اعضا؛ انتخاب هر عضو پوشش مشتری او را نشان می‌دهد. export در گام بعدی."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -62,10 +75,21 @@ export function TeamPage() {
               const completion = member.planTotal === 0
                 ? 0
                 : Math.round((member.planCompleted / member.planTotal) * 100)
+              const isSelected = selectedMember === member.userId
               return (
                 <div key={`member-${index}`}>
                   <div className="flex items-center justify-between gap-3 text-xs">
-                    <span className="font-bold">{`عضو ${(index + 1).toLocaleString('fa-IR')}`}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMember(isSelected ? null : member.userId)}
+                      aria-pressed={isSelected}
+                      className={[
+                        'min-h-10 rounded-xl px-2 text-right font-bold transition-colors',
+                        isSelected ? 'text-[var(--accent-strong)]' : '',
+                      ].join(' ')}
+                    >
+                      {`عضو ${(index + 1).toLocaleString('fa-IR')}`}
+                    </button>
                     <strong>{completion.toLocaleString('fa-IR')}٪</strong>
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]">
@@ -98,9 +122,13 @@ export function TeamPage() {
               </div>
             ))}
           </div>
-          <p className="mt-4 text-xs leading-6 text-[var(--text-tertiary)]">تجمیع از همان سرویس دامنه‌ای ساخته می‌شود که API سوپروایزر برمی‌گرداند؛ drill-down هر عضو در گام بعدی.</p>
+          <p className="mt-4 text-xs leading-6 text-[var(--text-tertiary)]">تجمیع از همان سرویس دامنه‌ای ساخته می‌شود که API سوپروایزر برمی‌گرداند؛ برای مشاهده پوشش هر عضو، نام او را از فهرست پیشرفت انتخاب کنید.</p>
         </article>
       </div>
+
+      {drillDown === null ? null : (
+        <MemberDrillDownTable summary={drillDown} onClose={() => setSelectedMember(null)} />
+      )}
     </section>
   )
 }

@@ -30,6 +30,10 @@ function facts(overrides: Partial<SupervisorTeamFacts> = {}): SupervisorTeamFact
       { userId: 'u1', status: 'verified' },
       { userId: 'u2', status: 'outside' },
     ],
+    listMemberCoverageFacts: async () => [
+      { userId: 'u1', customerId: 'c1', customerName: 'دکتر الف', requiredFrequency: 3, completedVisits: 3, plannedVisits: 0 },
+      { userId: 'u1', customerId: 'c2', customerName: 'دکتر ب', requiredFrequency: 2, completedVisits: 1, plannedVisits: 1 },
+    ],
     ...overrides,
   }
 }
@@ -98,5 +102,57 @@ describe('supervisor API', () => {
       '/workspaces/workspace-a/supervisor/team-progress?from=2026-09-30&to=2026-09-01',
     )
     expect(response.status).toBe(400)
+  })
+
+  it('requires team permission for member coverage', async () => {
+    const app = createSupervisorApi(
+      dependencies(facts(), authContext({ permissions: ['plans.read.own'] })),
+    )
+    const response = await app.request(
+      '/workspaces/workspace-a/supervisor/members/u1/coverage?from=2026-09-01&to=2026-09-30',
+    )
+    expect(response.status).toBe(403)
+  })
+
+  it('rejects cross-workspace member coverage before facts resolution', async () => {
+    let resolved = false
+    const app = createSupervisorApi({
+      authContextResolver: { resolve: async () => authContext() },
+      factsForWorkspace: async () => {
+        resolved = true
+        return facts()
+      },
+    })
+    const response = await app.request(
+      '/workspaces/workspace-b/supervisor/members/u1/coverage?from=2026-09-01&to=2026-09-30',
+    )
+    expect(response.status).toBe(403)
+    expect(resolved).toBe(false)
+  })
+
+  it('returns the member drill-down coverage summary', async () => {
+    const seen: string[] = []
+    const appWithSpy = createSupervisorApi(
+      dependencies(
+        facts({
+          listMemberCoverageFacts: async (params) => {
+            seen.push(params.memberUserId)
+            return facts().listMemberCoverageFacts(params)
+          },
+        }),
+      ),
+    )
+    const response = await appWithSpy.request(
+      '/workspaces/workspace-a/supervisor/members/u1/coverage?from=2026-09-01&to=2026-09-30',
+    )
+    expect(response.status).toBe(200)
+    expect(seen).toEqual(['u1'])
+    const body = (await response.json()) as {
+      summary: { userId: string; rowCount: number; customersCovered: number; rows: unknown[] }
+    }
+    expect(body.summary.userId).toBe('u1')
+    expect(body.summary.rowCount).toBe(2)
+    expect(body.summary.customersCovered).toBe(1)
+    expect(body.summary.rows).toHaveLength(2)
   })
 })

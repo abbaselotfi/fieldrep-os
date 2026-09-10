@@ -407,6 +407,7 @@ Scope: team dashboard, assigned-user drill-down, reporting, coverage/frequency, 
 | Step | Description | Status |
 |------|-------------|--------|
 | P8-A1 | Team rollup foundation — deterministic progress/verification aggregation, permission-scoped supervisor endpoints, supervisor dashboard page | DONE (2026-09-10) |
+| P8-A2 | Assigned-user drill-down — deterministic per-member coverage projection, scoped member-coverage endpoint, interactive drill-down panel | DONE (2026-09-10) |
 
 ### P8-A1 — Team Rollup Foundation (DONE)
 
@@ -418,6 +419,15 @@ Scope: team dashboard, assigned-user drill-down, reporting, coverage/frequency, 
 - Competitive basis: Veeva team dashboards, OCE coverage summaries (`COMPETITIVE-ANALYSIS.md` §6).
 
 Acceptance: 63 test files / 364 tests green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
+### P8-A2 — Assigned-User Drill-Down (DONE)
+
+- One small domain module (`member-drill-down.ts`, ~70 lines): `buildMemberDrillDown` projects per-member, per-customer coverage rows (`completedVisits / requiredFrequency`, `remaining`, deterministic customerId order); the not-required edge case pins to full coverage. Filtering stays upstream behind `reports.read.team`.
+- Worker route module extension (same `supervisor-api.ts`, three small blocks): read-only `GET /workspaces/:id/supervisor/members/:memberUserId/coverage` with the same `requireWorkspacePermission` + canonical-date range validation; a `listMemberCoverageFacts` repository port carries the authorized team-subtree facts.
+- Web: one presentational component (`MemberDrillDownTable.tsx`, ~80 lines, Persian coverage bands from `describeCoverageBand`) wired into `TeamPage.tsx` — selecting a member renders their coverage table; unknown ids can never render a panel.
+- Competitive basis: Veeva drill-down coverage, OCE per-member frequency rollups (`COMPETITIVE-ANALYSIS.md` §6).
+
+Acceptance: 66 test files / 375 tests green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
 
 ### P7-A1 — Recommendation Engine Core (DONE)
 

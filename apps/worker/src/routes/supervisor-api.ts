@@ -1,4 +1,6 @@
 import type {
+  MemberDrillDownFact,
+  MemberDrillDownSummary,
   TeamMemberProgress,
   TeamProgressSummary,
   TeamVerificationSummary,
@@ -6,7 +8,7 @@ import type {
   VerificationEntry,
   WorkspaceId,
 } from '@fieldrep/domain'
-import { buildTeamProgressSummary, summarizeVerifications } from '@fieldrep/domain'
+import { buildMemberDrillDown, buildTeamProgressSummary, summarizeVerifications } from '@fieldrep/domain'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
@@ -23,7 +25,7 @@ const supervisorRangeSchema = z.object({
 })
 
 /**
- * Supervisor workspace API (P8-A1) — read-only team rollups.
+ * Supervisor workspace API (P8-A1/A2) — read-only team rollups.
  *
  * Each endpoint is permission-scoped (`plans.read.team` / `reports.read.team`)
  * and the caller's scope grants filter the member facts before aggregation,
@@ -44,6 +46,13 @@ export interface SupervisorTeamFacts {
     fromDate: string
     toDate: string
   }): Promise<readonly VerificationEntry[]>
+  listMemberCoverageFacts(params: {
+    workspaceId: WorkspaceId
+    supervisorUserId: UserId
+    memberUserId: string
+    fromDate: string
+    toDate: string
+  }): Promise<readonly MemberDrillDownFact[]>
 }
 
 export interface TeamMemberFact extends TeamMemberProgress {
@@ -101,6 +110,32 @@ export function createSupervisorApi(dependencies: SupervisorApiDependencies) {
         toDate: parsed.data.to,
       })
       const summary: TeamVerificationSummary = summarizeVerifications(entries)
+      return c.json({ summary })
+    },
+  )
+
+  app.get(
+    '/workspaces/:workspaceId/supervisor/members/:memberUserId/coverage',
+    requireWorkspacePermission('reports.read.team'),
+    async (c) => {
+      const parsed = supervisorRangeSchema.safeParse(c.req.query())
+      if (!parsed.success || parsed.data.from > parsed.data.to) {
+        return c.json({ error: 'invalid_supervisor_range' }, 400)
+      }
+
+      const authContext = c.get('authContext')
+      const facts = await dependencies.factsForWorkspace(c.req.param('workspaceId'))
+      const coverage = await facts.listMemberCoverageFacts({
+        workspaceId: c.req.param('workspaceId'),
+        supervisorUserId: authContext.userId,
+        memberUserId: c.req.param('memberUserId'),
+        fromDate: parsed.data.from,
+        toDate: parsed.data.to,
+      })
+      const summary: MemberDrillDownSummary = buildMemberDrillDown(
+        c.req.param('memberUserId'),
+        coverage,
+      )
       return c.json({ summary })
     },
   )
