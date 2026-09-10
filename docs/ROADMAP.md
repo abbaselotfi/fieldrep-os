@@ -493,8 +493,8 @@ Scope: users/admins/supervisors, teams/org units, master customers/products/rout
 | Step | Description | Status |
 |------|-------------|--------|
 | P9-A1 | Organization & feature administration core — `org-unit-tree.ts` (deterministic tree, descendant scope resolution, cycle/cross-workspace parent guards) + `workspace-feature-policy.ts` (fail-closed workspace feature gates) + workspace-admin & company-admin permission bundles (PERMISSION-MATRIX §8/§9) | DONE (2026-09-10) |
-| P9-A2 | Org-unit/membership repositories + admin endpoints (assign/unassign, org-unit move, feature-toggle CRUD) | NEXT |
-| P9-A3 | Master data catalog (customers/products/routes) + import administration | PENDING |
+| P9-A2 | Org-unit/membership repositories + admin endpoints — `org-admin-repository.ts` (workspace-scoped store, cycle/cross-workspace guards, feature-setting upserts) + `org-admin-api.ts` (org-unit tree/move, membership assign, feature toggle read/write, permission-scoped) | DONE (2026-09-10) |
+| P9-A3 | Master data catalog (customers/products/routes) + import administration | NEXT |
 | P9-A4 | Working-calendar, holidays/events, targets policy administration | PENDING |
 | P9-A5 | Admin reporting + audit access UI | PENDING |
 
@@ -505,6 +505,20 @@ Scope: users/admins/supervisors, teams/org units, master customers/products/rout
   - `workspace-feature-policy.ts` — `WORKSPACE_FEATURE_KEYS` (`visit_verification`, `offline_sync`, `ai_planning`, `maps_location`, `supervisor_workspace`, `company_admin_workspace`), `resolveWorkspaceFeatureState` and `isWorkspaceFeatureEnabled` with fail-closed semantics; unknown/missing keys disable, latest `updatedAt` wins.
   - `packages/permissions` — `WORKSPACE_ADMIN_PERMISSIONS` (§8) and `COMPANY_ADMIN_PERMISSIONS` (§9), scoped so a company admin never implies operational workspace access.
 - Competitive basis: Veeva feature/licensing gates + admin-controlled scope (`COMPETITIVE-ANALYSIS.md` §3).
+
+### P9-A2 — Org-Unit/Membership Repository + Admin Endpoints (DONE)
+
+- Two small modules (no new migration — tables from 0001):
+  - `packages/database/src/org-admin-repository.ts` — `WorkspaceOrgAdminRepository`: `listOrgUnits`/`listMemberships`, `moveOrgUnit` (re-validates via `validateOrgUnitParentChange` before any write; returns the domain error code, never writes on cycle/cross-workspace), `assignMembership` (re-checks both the unit and the membership exist in this workspace before updating), `setFeatureSettings` (upsert into `workspace_settings` keyed `feature:<key>`, with `updated_by_user_id`).
+  - `apps/worker/src/routes/org-admin-api.ts` — `createOrgAdminApi`, permission-scoped per PERMISSION-MATRIX §8:
+    - `GET /workspaces/:id/org-units` → deterministic org-unit tree (`org_units.manage.workspace`);
+    - `PATCH /workspaces/:id/org-units/:unitId/parent` → 409 with `org_unit_move_<reason>` on invalid move;
+    - `POST /workspaces/:id/org-units/:unitId/members` → 404 on unknown unit/membership (`memberships.manage.workspace`);
+    - `GET/PUT /workspaces/:id/features` → resolved fail-closed states / toggle write (`workspace.settings.manage`), unknown keys rejected 400.
+- Small gateway interface (`OrgAdminGateway`) keeps the route test-friendly without coupling to the D1 store.
+- Competitive basis: Veeva/Vault admin console patterns (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 15 focused tests; full suite 71 test files / 408 tests green; gates (typecheck, migrations, P2/P3/P4) and web+worker builds pass.
 
 Acceptance: 19 new focused tests; full suite 69 test files / 393 tests green; gates (typecheck, migrations, P2/P3/P4) and web+worker builds pass.
 

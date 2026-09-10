@@ -63,3 +63,9 @@ export type {
   VisitVerificationRepository,
 } from './visit-verification-repository'
 export { WorkspaceVisitVerificationRepository } from './visit-verification-repository'
+export type {
+  FeatureSettingPatch,
+  OrgAdminRepository,
+  OrgUnitMembershipRow,
+} from './org-admin-repository'
+export { WorkspaceOrgAdminRepository } from './org-admin-repository'
