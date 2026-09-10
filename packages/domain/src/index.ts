@@ -242,6 +242,25 @@ export type {
 } from './recommendation-acceptance'
 export { decideSuggestion, SuggestionDecisionError } from './recommendation-acceptance'
 export type {
+  FindNearbyCustomersInput,
+  NearbyCustomer,
+  NearbyCustomerCandidate,
+} from './nearby-customers'
+export { findNearbyCustomers } from './nearby-customers'
+export type {
+  OptimizableStop,
+  OptimizeStopOrderInput,
+  OptimizedStopOrder,
+} from './route-optimization'
+export { optimizeStopOrder } from './route-optimization'
+export type {
+  MapAdapter,
+  MapHttpRequest,
+  StaticMapMarker,
+  StaticMapRequest,
+} from './map-provider'
+export { createNeshanMapAdapter } from './map-provider'
+export type {
   VisitReportBounds,
   VisitReportPeriod,
   VisitReportProductTotal,

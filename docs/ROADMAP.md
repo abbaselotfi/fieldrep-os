@@ -309,6 +309,22 @@ Primary acceptance sources: `OFFLINE-SYNC-SPEC.md`, `COMPETITIVE-ANALYSIS.md` §
 
 Scope: multiple customer locations, provider-independent map adapter, Neshan first, Google where required, geocode/reverse/search, Map Planner, nearby customers, distance matrix, route optimization and external navigation.
 
+### Status
+
+| Step | Description | Status |
+|------|-------------|--------|
+| P5-A1 | Geospatial service core — authorized nearby search, deterministic stop-order optimization, provider-independent map adapter (Neshan first) | DONE (2026-09-09) |
+
+### P5-A1 — Geospatial Service Core (DONE)
+
+- Three small domain modules (MAPS-LOCATION-SPEC §14/§16, provider boundary):
+  - `nearby-customers.ts` — `findNearbyCustomers`: authorization enforced *before* ranking (§14), radius filter, distance sort with deterministic id tie-break, device point never forwarded to providers (§14/§25 privacy boundary).
+  - `route-optimization.ts` — `optimizeStopOrder`: nearest-neighbour heuristic with optional start/end, producing a *proposed* `orderedStopIds` sequence + leg distances; never silently rewrites an official plan (§16 rule); deterministic (§21-style id tie-break).
+  - `map-provider.ts` — `MapAdapter` contract returning describable HTTP requests (`url` + headers), `createNeshanMapAdapter` static-map v2 with `Api-Key` header auth, marker formatting and zoom clamping; provider geometry stays presentation data, never a business object (§15).
+- Note: distance matrix and external navigation remain open under P5-A2+.
+
+Acceptance: 58 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
 ---
 
 ## P6 — Visit Location Verification
