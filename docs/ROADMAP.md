@@ -363,6 +363,23 @@ Acceptance: 40 test files green (typecheck, migrations, P2/P3/P4 gates, full vit
 
 Scope: explainable deterministic recommendation scoring using frequency/class/cycle urgency, last/missed visits, calendar constraints, location/route efficiency and later doctor availability; accept/reject/edit workflow; optional LLM explanation layer. AI must not silently publish an official plan.
 
+### Status
+
+| Step | Description | Status |
+|------|-------------|--------|
+| P7-A1 | Deterministic recommendation engine core — feature derivation, versioned weights, structured reasons, hard-constraint gating, deterministic ranking | DONE (2026-09-09) |
+
+### P7-A1 — Recommendation Engine Core (DONE)
+
+- Four small domain modules (AI-PLANNER-SPEC §4–§9, §20–§21):
+  - `recommendation-features.ts` — `deriveRecommendationFeatures` from authorized frequency/recency/cycle inputs; all factors normalized to explainable 0..1 ranges (`frequencyGapRatio`, `cycleUrgency`, clamped class/route weights).
+  - `recommendation-policy.ts` — versioned coefficients (`RECOMMENDATION_ENGINE_VERSION = 'fieldrep-rec-1.0.0'`, defaults: gap 30 / class 20 / urgency 20 / recency 15 / route 15) with normalization guards; coefficients are never buried in prompts (§8).
+  - `recommendation-scoring.ts` — additive `scoreRecommendationCandidate` emitting spec §9 structured reasons (`frequency_gap`, `class_priority`, `cycle_urgency`, `days_since_last_visit`, `route_affinity`) with per-factor contribution; silent factors are omitted from reasons.
+  - `recommendation-candidate.ts` — spec §6 candidate contract, `candidateIsAllowed` hard-constraint gate (§5: scores can never bypass blocking constraints), `rankRecommendationCandidates` with deterministic order (allowed first, score desc, id tiebreak — §21).
+- Competitive basis: OCE Next-Best-Activity scoring, Veeva suggested-call signals, Sanofi explainable suggestions (`COMPETITIVE-ANALYSIS.md` §6).
+
+Acceptance: 49 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
 ---
 
 ## P8 — Supervisor Workspace

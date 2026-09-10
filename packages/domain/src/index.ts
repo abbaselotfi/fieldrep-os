@@ -207,6 +207,30 @@ export type {
 } from './visit-verification'
 export { evaluateVisitVerification } from './visit-verification'
 export type {
+  RecommendationFeatureInputs,
+  RecommendationFeatures,
+} from './recommendation-features'
+export { deriveRecommendationFeatures } from './recommendation-features'
+export type { RecommendationWeights } from './recommendation-policy'
+export {
+  DEFAULT_RECOMMENDATION_WEIGHTS,
+  normalizeRecommendationWeights,
+  RECOMMENDATION_ENGINE_VERSION,
+} from './recommendation-policy'
+export type { RecommendationScore, SuggestionReason } from './recommendation-scoring'
+export {
+  maxRecommendationScore,
+  scoreRecommendationCandidate,
+} from './recommendation-scoring'
+export type {
+  RecommendationCandidate,
+  RecommendationConstraint,
+} from './recommendation-candidate'
+export {
+  candidateIsAllowed,
+  rankRecommendationCandidates,
+} from './recommendation-candidate'
+export type {
   VisitReportBounds,
   VisitReportPeriod,
   VisitReportProductTotal,
