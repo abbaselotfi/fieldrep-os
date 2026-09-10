@@ -408,6 +408,7 @@ Scope: team dashboard, assigned-user drill-down, reporting, coverage/frequency, 
 |------|-------------|--------|
 | P8-A1 | Team rollup foundation — deterministic progress/verification aggregation, permission-scoped supervisor endpoints, supervisor dashboard page | DONE (2026-09-10) |
 | P8-A2 | Assigned-user drill-down — deterministic per-member coverage projection, scoped member-coverage endpoint, interactive drill-down panel | DONE (2026-09-10) |
+| P8-A3 | Permission-scoped team export — deterministic CSV over the authorized team subtree served from the coverage facts | DONE (2026-09-10) |
 
 ### P8-A1 — Team Rollup Foundation (DONE)
 
@@ -428,6 +429,14 @@ Acceptance: 63 test files / 364 tests green (typecheck, migrations, P2/P3/P4 gat
 - Competitive basis: Veeva drill-down coverage, OCE per-member frequency rollups (`COMPETITIVE-ANALYSIS.md` §6).
 
 Acceptance: 66 test files / 375 tests green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
+### P8-A3 — Permission-Scoped Team Export (DONE)
+
+- One small domain module (`team-export.ts`, ~60 lines): `TeamExportRow` + `serializeTeamCoverageCsv` — deterministic CSV (fixed header order, userId-then-customerId sort) with proper cell quoting, so the same fact set always produces byte-identical output. No new filtering here; the route only exports what the authorized coverage facts already resolved.
+- Worker route module extension (same `supervisor-api.ts`, one small block): read-only `GET /workspaces/:id/supervisor/coverage-export` with the same `requireWorkspacePermission('reports.read.team')` + canonical-date range validation; collects per-member drill-down rows over `listMemberCoverageFacts` and serves `text/csv` with a download filename.
+- Competitive basis: Veeva team exports, OCE coverage summaries (`COMPETITIVE-ANALYSIS.md` §6).
+
+Acceptance: 66 test files / 374 tests green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
 
 ### P7-A1 — Recommendation Engine Core (DONE)
 

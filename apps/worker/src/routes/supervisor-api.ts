@@ -1,6 +1,7 @@
 import type {
   MemberDrillDownFact,
   MemberDrillDownSummary,
+  TeamExportRow,
   TeamMemberProgress,
   TeamProgressSummary,
   TeamVerificationSummary,
@@ -8,7 +9,7 @@ import type {
   VerificationEntry,
   WorkspaceId,
 } from '@fieldrep/domain'
-import { buildMemberDrillDown, buildTeamProgressSummary, summarizeVerifications } from '@fieldrep/domain'
+import { buildMemberDrillDown, buildTeamProgressSummary, serializeTeamCoverageCsv, summarizeVerifications } from '@fieldrep/domain'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
@@ -137,6 +138,56 @@ export function createSupervisorApi(dependencies: SupervisorApiDependencies) {
         coverage,
       )
       return c.json({ summary })
+    },
+  )
+
+  /**
+   * Permission-scoped CSV export (P8-A3).
+   *
+   * Serves only the rows in the supervisor's authorized team subtree — the
+   * same `listMemberCoverageFacts` facts as the coverage endpoint, collected
+   * per member the supervisor may see. Same permission, same filters, added
+   * deterministic CSV serialization so output is byte-identical per fact set.
+   */
+  app.get(
+    '/workspaces/:workspaceId/supervisor/coverage-export',
+    requireWorkspacePermission('reports.read.team'),
+    async (c) => {
+      const parsed = supervisorRangeSchema.safeParse(c.req.query())
+      if (!parsed.success || parsed.data.from > parsed.data.to) {
+        return c.json({ error: 'invalid_supervisor_range' }, 400)
+      }
+
+      const authContext = c.get('authContext')
+      const facts = await dependencies.factsForWorkspace(c.req.param('workspaceId'))
+      const members = await facts.listTeamFacts({
+        workspaceId: c.req.param('workspaceId'),
+        supervisorUserId: authContext.userId,
+        fromDate: parsed.data.from,
+        toDate: parsed.data.to,
+      })
+      const rows: TeamExportRow[] = []
+      for (const member of members) {
+        const coverage = await facts.listMemberCoverageFacts({
+          workspaceId: c.req.param('workspaceId'),
+          supervisorUserId: authContext.userId,
+          memberUserId: member.userId,
+          fromDate: parsed.data.from,
+          toDate: parsed.data.to,
+        })
+        const drillDown = buildMemberDrillDown(member.userId, coverage)
+        for (const row of drillDown.rows) {
+          rows.push({ userId: member.userId, ...row })
+        }
+      }
+      const csv = serializeTeamCoverageCsv(rows)
+      return new Response(csv, {
+        status: 200,
+        headers: {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition': 'attachment; filename="team-coverage.csv"',
+        },
+      })
     },
   )
 

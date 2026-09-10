@@ -155,4 +155,40 @@ describe('supervisor API', () => {
     expect(body.summary.customersCovered).toBe(1)
     expect(body.summary.rows).toHaveLength(2)
   })
+
+  it('requires team permission for the coverage export', async () => {
+    const app = createSupervisorApi(
+      dependencies(facts(), authContext({ permissions: ['plans.read.own'] })),
+    )
+    const response = await app.request(
+      '/workspaces/workspace-a/supervisor/coverage-export?from=2026-09-01&to=2026-09-30',
+    )
+    expect(response.status).toBe(403)
+  })
+
+  it('serves a deterministic CSV over the authorized team subtree', async () => {
+    const perMemberFacts = facts({
+      listMemberCoverageFacts: async (params) => [
+        { userId: params.memberUserId, customerId: 'c1', customerName: 'دکتر الف', requiredFrequency: 3, completedVisits: 3, plannedVisits: 0 },
+        { userId: params.memberUserId, customerId: 'c2', customerName: 'دکتر ب', requiredFrequency: 2, completedVisits: 1, plannedVisits: 1 },
+      ],
+    })
+    const app = createSupervisorApi(dependencies(perMemberFacts))
+    const response = await app.request(
+      '/workspaces/workspace-a/supervisor/coverage-export?from=2026-09-01&to=2026-09-30',
+    )
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('text/csv')
+    const csv = await response.text()
+    const lines = csv.split('\n')
+    expect(lines[0]).toBe(
+      'userId,customerId,customerName,requiredFrequency,completedVisits,plannedVisits,coverageRatio,remaining',
+    )
+    // Two members x two coverage facts each = four rows, ordered by user.
+    // Trailing newline leaves an empty final element after split.
+    expect(lines).toHaveLength(6)
+    expect(lines[1]?.startsWith('u1,c1')).toBe(true)
+    expect(lines[3]?.startsWith('u2,c1')).toBe(true)
+    expect(csv.endsWith('\n')).toBe(true)
+  })
 })

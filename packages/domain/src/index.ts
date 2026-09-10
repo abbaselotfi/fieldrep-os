@@ -322,3 +322,5 @@ export type {
   MemberDrillDownSummary,
 } from './member-drill-down'
 export { buildMemberDrillDown } from './member-drill-down'
+export type { TeamExportRow } from './team-export'
+export { serializeTeamCoverageCsv } from './team-export'
