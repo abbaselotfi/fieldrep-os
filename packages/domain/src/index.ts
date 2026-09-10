@@ -230,6 +230,17 @@ export {
   candidateIsAllowed,
   rankRecommendationCandidates,
 } from './recommendation-candidate'
+export type { PriorityBand, SuggestionStatus, VisitSuggestion } from './recommendation-suggestion'
+export { derivePriorityBand } from './recommendation-suggestion'
+export type { BuildRecommendationBatchInput, RankedCandidate, RecommendationBatch } from './recommendation-batch'
+export { buildRecommendationBatch } from './recommendation-batch'
+export type {
+  AcceptedPlanSeed,
+  DecideSuggestionInput,
+  SuggestionAction,
+  SuggestionDecision,
+} from './recommendation-acceptance'
+export { decideSuggestion, SuggestionDecisionError } from './recommendation-acceptance'
 export type {
   VisitReportBounds,
   VisitReportPeriod,

@@ -7,6 +7,9 @@
  */
 export const RECOMMENDATION_ENGINE_VERSION = 'fieldrep-rec-1.0.0'
 
+/** Policy identity for the current default weight set (§11/§20). */
+export const RECOMMENDATION_POLICY_VERSION = 'fieldrep-rec-weights-1'
+
 export interface RecommendationWeights {
   frequencyGap: number
   classPriority: number

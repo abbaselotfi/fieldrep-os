@@ -368,6 +368,7 @@ Scope: explainable deterministic recommendation scoring using frequency/class/cy
 | Step | Description | Status |
 |------|-------------|--------|
 | P7-A1 | Deterministic recommendation engine core — feature derivation, versioned weights, structured reasons, hard-constraint gating, deterministic ranking | DONE (2026-09-09) |
+| P7-A2 | Suggestion batch & acceptance workflow — batch envelope (§11), priority bands, accept/reject/edit decisions with `ai_suggestion` provenance (§13) | DONE (2026-09-09) |
 
 ### P7-A1 — Recommendation Engine Core (DONE)
 
@@ -379,6 +380,16 @@ Scope: explainable deterministic recommendation scoring using frequency/class/cy
 - Competitive basis: OCE Next-Best-Activity scoring, Veeva suggested-call signals, Sanofi explainable suggestions (`COMPETITIVE-ANALYSIS.md` §6).
 
 Acceptance: 49 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
+### P7-A2 — Suggestion Batch & Acceptance Workflow (DONE)
+
+- Three small domain modules:
+  - `recommendation-suggestion.ts` — spec §12 `VisitSuggestion` + status lifecycle (`suggested/accepted/rejected/edited/converted_to_plan/expired`) + application-owned `derivePriorityBand` (`very_high ≥ 75%`, `high ≥ 50%`, `medium ≥ 30%` of the explainable max, band scales with workspace weight overrides).
+  - `recommendation-batch.ts` — spec §11 envelope (`engineVersion` + `policyVersion = 'fieldrep-rec-weights-1'`); only allowed candidates become suggestions (§5), date/location assignment walks the deterministic ranked order and each candidate's eligible lists (§21 reproducible).
+  - `recommendation-acceptance.ts` — spec §13 state machine: `accept` → `AcceptedPlanSeed` with `source: 'ai_suggestion'` + `sourceSuggestionId` provenance; `reject` → no seed; `edit` requires an actual date/location change and validates the date format; closed suggestions (`converted_to_plan/expired/rejected`) can no longer be decided. Nothing publishes an official plan by itself — conversion stays an explicit user action.
+- Competitive basis: OCE orchestrated suggestion workflow, Veeva suggested-call acceptance, Sanofi explainable recommendation bands (`COMPETITIVE-ANALYSIS.md` §6).
+
+Acceptance: 52 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
 
 ---
 
