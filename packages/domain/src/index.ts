@@ -261,6 +261,14 @@ export type {
 } from './map-provider'
 export { createNeshanMapAdapter } from './map-provider'
 export type {
+  BuildDistanceMatrixInput,
+  DistanceMatrixEntry,
+  DistanceMatrixResult,
+} from './distance-matrix'
+export { buildDistanceMatrix } from './distance-matrix'
+export type { NavigationLink, NavigationProvider, NavigationTarget } from './external-navigation'
+export { buildNavigationLink, buildNavigationLinks } from './external-navigation'
+export type {
   VisitReportBounds,
   VisitReportPeriod,
   VisitReportProductTotal,

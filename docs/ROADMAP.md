@@ -314,6 +314,7 @@ Scope: multiple customer locations, provider-independent map adapter, Neshan fir
 | Step | Description | Status |
 |------|-------------|--------|
 | P5-A1 | Geospatial service core — authorized nearby search, deterministic stop-order optimization, provider-independent map adapter (Neshan first) | DONE (2026-09-09) |
+| P5-A2 | Distance matrix & external navigation — internal haversine matrix (privacy-preserving), Neshan/Google navigation deep links | DONE (2026-09-09) |
 
 ### P5-A1 — Geospatial Service Core (DONE)
 
@@ -324,6 +325,14 @@ Scope: multiple customer locations, provider-independent map adapter, Neshan fir
 - Note: distance matrix and external navigation remain open under P5-A2+.
 
 Acceptance: 58 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
+### P5-A2 — Distance Matrix & External Navigation (DONE)
+
+- Two small domain modules:
+  - `distance-matrix.ts` — `buildDistanceMatrix`: pairwise haversine with `entries` + direct `byId` lookup; self-pairs excluded by default; **no location data leaves the system for pairwise distances** (§25 privacy boundary) — provider matrices stay optional for road distances at the edge.
+  - `external-navigation.ts` — `buildNavigationLink(s)`: user-initiated deep links (Neshan first: `neshan.org/maps/?lat&lng&title`; Google: `maps/dir/?api=1&destination`); coordinates encoded, optional title param; nothing flows anywhere until the user taps the link (explicit action, no background tracking).
+
+Acceptance: 60 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
 
 ---
 
