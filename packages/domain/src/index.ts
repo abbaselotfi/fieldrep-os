@@ -269,6 +269,19 @@ export { buildDistanceMatrix } from './distance-matrix'
 export type { NavigationLink, NavigationProvider, NavigationTarget } from './external-navigation'
 export { buildNavigationLink, buildNavigationLinks } from './external-navigation'
 export type {
+  TeamMemberProgress,
+  TeamMemberProgressRow,
+  TeamProgressSummary,
+} from './team-progress'
+export { buildTeamProgressSummary } from './team-progress'
+export type {
+  TeamVerificationSummary,
+  UserVerificationSummary,
+  VerificationEntry,
+  VerificationStatusCounts,
+} from './verification-summary'
+export { summarizeVerifications } from './verification-summary'
+export type {
   VisitReportBounds,
   VisitReportPeriod,
   VisitReportProductTotal,

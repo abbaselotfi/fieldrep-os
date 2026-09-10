@@ -9,6 +9,7 @@ import { HomePage } from './pages/HomePage'
 import { PlannerPage } from './pages/PlannerPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { TeamPage } from './pages/TeamPage'
 import { VisitPage } from './pages/VisitPage'
 
 export function App() {
@@ -22,6 +23,7 @@ export function App() {
           <Route path="customers" element={<CustomersPage />} />
           <Route path="ai" element={<AiPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="team" element={<TeamPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="visit/new" element={<VisitPage />} />
         </Route>

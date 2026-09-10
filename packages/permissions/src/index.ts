@@ -26,6 +26,17 @@ export const FIELD_USER_PERMISSIONS = {
   settingsUpdateOwn: 'settings.update.own',
 } as const satisfies Record<string, PermissionKey>
 
+/**
+ * Supervisor permissions (PERMISSION-MATRIX §7): team-scoped by default and
+ * never automatically extended to the whole workspace — every team read is
+ * additionally filtered through the supervisor's scope grants.
+ */
+export const SUPERVISOR_PERMISSIONS = {
+  usersReadTeam: 'users.read.team',
+  plansReadTeam: 'plans.read.team',
+  reportsReadTeam: 'reports.read.team',
+} as const satisfies Record<string, PermissionKey>
+
 export interface ResourceScope {
   companyId: CompanyId
   workspaceId: WorkspaceId
@@ -109,4 +120,36 @@ export function authorizeResource(
   options: ScopeEvaluationOptions = {},
 ): boolean {
   return hasPermission(context, permission) && hasApplicableScope(context, resource, options)
+}
+
+export interface TeamMemberRef {
+  userId: UserId
+  organizationUnitId?: OrganizationUnitId
+}
+
+/**
+ * Filters team members down to those the supervisor's scope grants actually
+ * cover (PERMISSION-MATRIX §7 — team scope must not auto-extend). Callers
+ * combine this with `hasPermission(context, 'users.read.team')` before use;
+ * this helper only answers the scope question, per member.
+ */
+export function authorizedTeamMembers(
+  context: AuthContext,
+  members: readonly TeamMemberRef[],
+  options: ScopeEvaluationOptions = {},
+): TeamMemberRef[] {
+  return members.filter((member) =>
+    hasApplicableScope(
+      context,
+      {
+        companyId: context.companyId,
+        workspaceId: context.workspaceId,
+        ...(member.organizationUnitId === undefined
+          ? {}
+          : { organizationUnitId: member.organizationUnitId }),
+        ownerUserId: member.userId,
+      },
+      options,
+    ),
+  )
 }

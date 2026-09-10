@@ -22,6 +22,7 @@ const desktopNavigation: readonly NavigationItem[] = [
   { label: 'ثبت ویزیت', to: '/visit/new', icon: 'visit' },
   { label: 'دستیار AI', to: '/ai', icon: 'ai' },
   { label: 'گزارش‌ها', to: '/reports', icon: 'reports' },
+  { label: 'داشبورد تیم', to: '/team', icon: 'customers' },
   { label: 'تنظیمات', to: '/settings', icon: 'settings' },
 ]
 

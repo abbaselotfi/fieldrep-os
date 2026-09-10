@@ -396,6 +396,29 @@ Scope: explainable deterministic recommendation scoring using frequency/class/cy
 | P7-A2 | Suggestion batch & acceptance workflow — batch envelope (§11), priority bands, accept/reject/edit decisions with `ai_suggestion` provenance (§13) | DONE (2026-09-09) |
 | P7-A3 | AI page wiring — live preview batch from the real engine, Persian reason/band labels, accept/reject/edit-date actions on preview state | DONE (2026-09-09) |
 
+---
+
+## P8 — Supervisor Workspace
+
+Scope: team dashboard, assigned-user drill-down, reporting, coverage/frequency, activities, visit-verification summaries and permission-scoped exports.
+
+### Status
+
+| Step | Description | Status |
+|------|-------------|--------|
+| P8-A1 | Team rollup foundation — deterministic progress/verification aggregation, permission-scoped supervisor endpoints, supervisor dashboard page | DONE (2026-09-10) |
+
+### P8-A1 — Team Rollup Foundation (DONE)
+
+- Two small domain modules (no файлов over ~110 lines):
+  - `team-progress.ts` — `buildTeamProgressSummary`: filters nothing itself (team-subtree filtering stays upstream behind `plans.read.team` per PERMISSION-MATRIX scope model), aggregates per-member plan/visit facts into team totals + deterministic member rows (userId-sorted); `plans.read.team`/`reports.read.team` added as team-scoped reads.
+  - `verification-summary.ts` — `summarizeVerifications`: per-user + team `verified/nearby/unverified/outside` counts with `verifiedRatio`; same upstream-scoping model (`reports.read.team`).
+- Worker route module `supervisor-api.ts`: read-only `GET /workspaces/:id/supervisor/team-progress` and `/supervisor/verification-summary`, each with `requireWorkspacePermission` + canonical-date range validation (`invalid_supervisor_range`); repository ports inject `authorizedTeamMembers`-filtered facts — the route only aggregates what it receives.
+- Web: `TeamPage.tsx` (`/team` in desktop nav) renders MetricCards + per-member plan bars + verification mix from the same domain aggregators the API serves (demo facts stand in until the TeamPage wires to the live endpoints).
+- Competitive basis: Veeva team dashboards, OCE coverage summaries (`COMPETITIVE-ANALYSIS.md` §6).
+
+Acceptance: 63 test files / 364 tests green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
 ### P7-A1 — Recommendation Engine Core (DONE)
 
 - Four small domain modules (AI-PLANNER-SPEC §4–§9, §20–§21):
