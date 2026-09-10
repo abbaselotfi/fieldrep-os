@@ -369,6 +369,7 @@ Scope: explainable deterministic recommendation scoring using frequency/class/cy
 |------|-------------|--------|
 | P7-A1 | Deterministic recommendation engine core — feature derivation, versioned weights, structured reasons, hard-constraint gating, deterministic ranking | DONE (2026-09-09) |
 | P7-A2 | Suggestion batch & acceptance workflow — batch envelope (§11), priority bands, accept/reject/edit decisions with `ai_suggestion` provenance (§13) | DONE (2026-09-09) |
+| P7-A3 | AI page wiring — live preview batch from the real engine, Persian reason/band labels, accept/reject/edit-date actions on preview state | DONE (2026-09-09) |
 
 ### P7-A1 — Recommendation Engine Core (DONE)
 
@@ -390,6 +391,15 @@ Acceptance: 49 test files green (typecheck, migrations, P2/P3/P4 gates, full vit
 - Competitive basis: OCE orchestrated suggestion workflow, Veeva suggested-call acceptance, Sanofi explainable recommendation bands (`COMPETITIVE-ANALYSIS.md` §6).
 
 Acceptance: 52 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
+
+### P7-A3 — AI Page Wiring (DONE)
+
+- `apps/web/src/features/ai/build-preview-batch.ts` — feeds the real deterministic engine with demo-workspace inputs (frequency targets, class weights A=1/B=0.6/C=0.3, preview cycle context); no fabricated scores.
+- `apps/web/src/features/ai/recommendation-labels.ts` — Persian labels for reason codes, priority bands, suggestion statuses; `describeSuggestion` derives the natural explanation from structured reasons (§10 — reproducible, auditable).
+- `apps/web/src/features/ai/suggestion-state.ts` — pure reducer around the domain §13 decisions; unknown ids ignored so stale events cannot resurrect closed suggestions.
+- `AiPage.tsx` — live suggestion list with band chips, score, status chips, Persian reason line, accept/reject buttons and per-suggestion date selector (edit); engine/policy versions displayed; explicit copy that only user acceptance converts a suggestion into a plan.
+
+Acceptance: 55 test files green (typecheck, migrations, P2/P3/P4 gates, full vitest suite, web+worker builds).
 
 ---
 

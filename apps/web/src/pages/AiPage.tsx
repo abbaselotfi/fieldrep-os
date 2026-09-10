@@ -1,8 +1,22 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
+import {
+  decideSuggestion,
+  type SuggestionAction,
+  type VisitSuggestion,
+} from '@fieldrep/domain'
 import { PageHeader } from '../components/PageHeader'
-import { demoAiSuggestions, getDemoCustomer } from '../data/demo-field-workspace'
+import { getDemoCustomer } from '../data/demo-field-workspace'
+import { buildPreviewBatch } from '../features/ai/build-preview-batch'
+import {
+  BAND_CLASSES,
+  BAND_LABELS,
+  describeSuggestion,
+  STATUS_LABELS,
+} from '../features/ai/recommendation-labels'
+import { applySuggestionDecision } from '../features/ai/suggestion-state'
+import { previewPlannerDays } from '../features/planner/preview-plan'
 
 const quickPrompts = [
   'بهترین پزشکان امروز',
@@ -13,6 +27,30 @@ const quickPrompts = [
 export function AiPage() {
   const [message, setMessage] = useState('')
   const [lastQuestion, setLastQuestion] = useState<string | null>(null)
+  const batch = useMemo(() => buildPreviewBatch(), [])
+  const [suggestions, setSuggestions] = useState<VisitSuggestion[]>(batch.suggestions)
+  const [decisionError, setDecisionError] = useState<string | null>(null)
+
+  const openSuggestions = suggestions.filter(
+    (suggestion) => suggestion.status === 'suggested' || suggestion.status === 'edited',
+  )
+  const acceptedCount = suggestions.filter((suggestion) => suggestion.status === 'accepted').length
+
+  function decide(action: SuggestionAction, suggestion: VisitSuggestion, editedDate?: string) {
+    try {
+      const decision = decideSuggestion({
+        suggestion,
+        action,
+        ...(action === 'edit' && editedDate !== undefined ? { editedDate } : {}),
+      })
+      setSuggestions((current) => applySuggestionDecision(current, decision))
+      setDecisionError(null)
+    } catch (error) {
+      setDecisionError(
+        error instanceof Error ? error.message : 'suggestion_decision_failed',
+      )
+    }
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -82,26 +120,80 @@ export function AiPage() {
           <article className="app-card p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-bold text-[var(--text-tertiary)]">پیشنهادهای اولویت‌دار</p>
-                <h2 className="mt-1 text-lg font-black">برای روز کاری بعد</h2>
+                <p className="text-[11px] font-bold text-[var(--text-tertiary)]">پیشنهادهای موتور توصیه</p>
+                <h2 className="mt-1 text-lg font-black">
+                  {openSuggestions.length.toLocaleString('fa-IR')} پیشنهاد باز · {acceptedCount.toLocaleString('fa-IR')} پذیرفته
+                </h2>
               </div>
               <Link to="/planner" className="text-xs font-extrabold text-[var(--accent-strong)]">باز کردن پلن</Link>
             </div>
+            <p className="mt-2 text-[10px] leading-5 text-[var(--text-tertiary)]">
+              موتور قطعی · نسخه {batch.engineVersion} · سیاست {batch.policyVersion} — فقط پذیرش شما پیشنهاد را به پلن تبدیل می‌کند.
+            </p>
+
+            {decisionError === null ? null : (
+              <p role="alert" className="mt-3 rounded-2xl bg-[var(--danger-soft)] p-3 text-[11px] font-bold text-[var(--danger)]">
+                {decisionError}
+              </p>
+            )}
 
             <div className="mt-4 space-y-3">
-              {demoAiSuggestions.map((suggestion, index) => {
+              {suggestions.map((suggestion, index) => {
                 const customer = getDemoCustomer(suggestion.customerId)
+                const isOpen = suggestion.status === 'suggested' || suggestion.status === 'edited'
                 return (
-                  <div key={suggestion.customerId} className="rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
+                  <div key={suggestion.id} className="rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface-soft)] p-4">
                     <div className="flex items-start gap-3">
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--ai-soft)] text-xs font-black text-[var(--ai-strong)]">{(index + 1).toLocaleString('fa-IR')}</span>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <h3 className="truncate text-sm font-black">{customer.name}</h3>
-                          <span className="text-xs font-black text-[var(--ai-strong)]">{suggestion.score.toLocaleString('fa-IR')}</span>
+                          <span className={['rounded-full px-2.5 py-1 text-[9px] font-black', BAND_CLASSES[suggestion.priorityBand]].join(' ')}>
+                            {BAND_LABELS[suggestion.priorityBand]}
+                          </span>
                         </div>
                         <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">{customer.specialty} · {customer.route}</p>
-                        <p className="mt-2 text-[11px] leading-6 text-[var(--text-secondary)]">{suggestion.reason}</p>
+                        <p className="mt-2 text-[11px] leading-6 text-[var(--text-secondary)]">{describeSuggestion(suggestion)}</p>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[var(--surface-raised)] px-2.5 py-1 text-[9px] font-black text-[var(--text-tertiary)]">
+                            امتیاز {suggestion.score.toLocaleString('fa-IR', { maximumFractionDigits: 1 })}
+                          </span>
+                          <span className="rounded-full bg-[var(--surface-raised)] px-2.5 py-1 text-[9px] font-black text-[var(--text-tertiary)]">
+                            {STATUS_LABELS[suggestion.status]}
+                          </span>
+                        </div>
+
+                        {isOpen ? (
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <select
+                              value={suggestion.suggestedDate}
+                              onChange={(event) => decide('edit', suggestion, event.target.value)}
+                              className="min-h-9 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-2 text-[10px] font-bold"
+                              aria-label={`تاریخ پیشنهاد ${customer.name}`}
+                            >
+                              {previewPlannerDays.map((day) => (
+                                <option key={day.planDate} value={day.planDate}>
+                                  {day.weekday} {day.jalaliDay.toLocaleString('fa-IR')}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => decide('accept', suggestion)}
+                              className="min-h-9 rounded-xl bg-[var(--success)] px-3 text-[10px] font-black text-white"
+                            >
+                              پذیرش
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => decide('reject', suggestion)}
+                              className="min-h-9 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-3 text-[10px] font-black text-[var(--text-secondary)]"
+                            >
+                              رد
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
