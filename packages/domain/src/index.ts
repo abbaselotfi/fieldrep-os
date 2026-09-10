@@ -324,3 +324,24 @@ export type {
 export { buildMemberDrillDown } from './member-drill-down'
 export type { TeamExportRow } from './team-export'
 export { serializeTeamCoverageCsv } from './team-export'
+export type {
+  OrgUnitNode,
+  OrgUnitParentChangeError,
+  OrgUnitRecord,
+} from './org-unit-tree'
+export {
+  buildOrgUnitTree,
+  collectOrgUnitDescendants,
+  orgUnitContains,
+  validateOrgUnitParentChange,
+} from './org-unit-tree'
+export type {
+  WorkspaceFeatureKey,
+  WorkspaceFeatureSetting,
+  WorkspaceFeatureState,
+} from './workspace-feature-policy'
+export {
+  WORKSPACE_FEATURE_KEYS,
+  isWorkspaceFeatureEnabled,
+  resolveWorkspaceFeatureState,
+} from './workspace-feature-policy'

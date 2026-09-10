@@ -474,13 +474,39 @@ Acceptance: 55 test files green (typecheck, migrations, P2/P3/P4 gates, full vit
 
 Scope: team dashboard, assigned-user drill-down, reporting, coverage/frequency, activities, visit-verification summaries and permission-scoped exports.
 
+### Status
+
+| Step | Description | Status |
+|------|-------------|--------|
+| P8-A1 | Supervisor team rollup foundation — `TeamMemberProgress`/`buildTeamProgressSummary`, `VerificationEntry`/`summarizeVerifications`, `plans.read.team`+`reports.read.team` permissions, scoped team rollup endpoints | DONE |
+| P8-A2 | Assigned-user drill-down — `buildMemberDrillDown` (domain coverage projection), scoped member coverage endpoint, team panel UI with member navigation | DONE |
+| P8-A3 | Permission-scoped team coverage export — `serializeTeamCoverageCsv` (deterministic CSV, audit-replayable), `GET coverage-export` reusing authorized scope | DONE |
+
 ---
 
 ## P9 — Company & Workspace Administration
 
 Scope: users/admins/supervisors, teams/org units, master customers/products/routes, imports, working calendar, holidays/events, targets, feature settings, reporting and audit access.
 
----
+### Status
+
+| Step | Description | Status |
+|------|-------------|--------|
+| P9-A1 | Organization & feature administration core — `org-unit-tree.ts` (deterministic tree, descendant scope resolution, cycle/cross-workspace parent guards) + `workspace-feature-policy.ts` (fail-closed workspace feature gates) + workspace-admin & company-admin permission bundles (PERMISSION-MATRIX §8/§9) | DONE (2026-09-10) |
+| P9-A2 | Org-unit/membership repositories + admin endpoints (assign/unassign, org-unit move, feature-toggle CRUD) | NEXT |
+| P9-A3 | Master data catalog (customers/products/routes) + import administration | PENDING |
+| P9-A4 | Working-calendar, holidays/events, targets policy administration | PENDING |
+| P9-A5 | Admin reporting + audit access UI | PENDING |
+
+### P9-A1 — Organization & Feature Administration Core (DONE)
+
+- Two small domain modules + permission bundles:
+  - `org-unit-tree.ts` — `buildOrgUnitTree` (deterministic, children sorted by id, missing parent tolerated as root), `collectOrgUnitDescendants`/`orgUnitContains` (enable `includeDescendants` scope evaluation, PERMISSION-MATRIX §3), `validateOrgUnitParentChange` (cycle/self/missing/cross-workspace rejection before any write).
+  - `workspace-feature-policy.ts` — `WORKSPACE_FEATURE_KEYS` (`visit_verification`, `offline_sync`, `ai_planning`, `maps_location`, `supervisor_workspace`, `company_admin_workspace`), `resolveWorkspaceFeatureState` and `isWorkspaceFeatureEnabled` with fail-closed semantics; unknown/missing keys disable, latest `updatedAt` wins.
+  - `packages/permissions` — `WORKSPACE_ADMIN_PERMISSIONS` (§8) and `COMPANY_ADMIN_PERMISSIONS` (§9), scoped so a company admin never implies operational workspace access.
+- Competitive basis: Veeva feature/licensing gates + admin-controlled scope (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 19 new focused tests; full suite 69 test files / 393 tests green; gates (typecheck, migrations, P2/P3/P4) and web+worker builds pass.
 
 ## P10 — Platform Administration
 

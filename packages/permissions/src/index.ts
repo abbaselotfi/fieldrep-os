@@ -37,6 +37,57 @@ export const SUPERVISOR_PERMISSIONS = {
   reportsReadTeam: 'reports.read.team',
 } as const satisfies Record<string, PermissionKey>
 
+/**
+ * Workspace admin permissions (PERMISSION-MATRIX §8). Workspace-scoped:
+ * an admin never crosses into other workspaces unless separately assigned —
+ * `authorizeResource` re-checks the resource workspace against active scope.
+ */
+export const WORKSPACE_ADMIN_PERMISSIONS = {
+  workspaceRead: 'workspace.read',
+  workspaceSettingsManage: 'workspace.settings.manage',
+  usersReadWorkspace: 'users.read.workspace',
+  membershipsManageWorkspace: 'memberships.manage.workspace',
+  roleAssignmentsManageWorkspace: 'role_assignments.manage.workspace',
+  orgUnitsManageWorkspace: 'org_units.manage.workspace',
+  customersReadWorkspace: 'customers.read.workspace',
+  customersManageWorkspace: 'customers.manage.workspace',
+  importsManageWorkspace: 'imports.manage.workspace',
+  productsManageWorkspace: 'products.manage.workspace',
+  routesManageWorkspace: 'routes.manage.workspace',
+  targetsManageWorkspace: 'targets.manage.workspace',
+  calendarManageWorkspace: 'calendar.manage.workspace',
+  holidaysManageWorkspace: 'holidays.manage.workspace',
+  meetingsManageWorkspace: 'meetings.manage.workspace',
+  programsManageWorkspace: 'programs.manage.workspace',
+  reportsReadWorkspace: 'reports.read.workspace',
+  reportsExportWorkspace: 'reports.export.workspace',
+  visitVerificationReadWorkspace: 'visit_verification.read.workspace',
+  auditReadWorkspace: 'audit.read.workspace',
+} as const satisfies Record<string, PermissionKey>
+
+/**
+ * Company admin permissions (PERMISSION-MATRIX §9). Company scope is
+ * authoritative: a company admin without an explicit workspace grant must not
+ * see a workspace's detailed operational records just because they manage the
+ * company.
+ */
+export const COMPANY_ADMIN_PERMISSIONS = {
+  companyRead: 'company.read',
+  companySettingsManage: 'company.settings.manage',
+  workspacesReadCompany: 'workspaces.read.company',
+  workspacesSettingsManage: 'workspaces.settings.manage',
+  usersReadCompany: 'users.read.company',
+  membershipsManageCompany: 'memberships.manage.company',
+  orgUnitsReadCompany: 'org_units.read.company',
+  holidaysManageCompany: 'holidays.manage.company',
+  programsManageCompany: 'programs.manage.company',
+  reportsReadCompany: 'reports.read.company',
+  reportsExportCompany: 'reports.export.company',
+  importsReadCompany: 'imports.read.company',
+  datasetsRequestCompany: 'datasets.request.company',
+  auditReadCompany: 'audit.read.company',
+} as const satisfies Record<string, PermissionKey>
+
 export interface ResourceScope {
   companyId: CompanyId
   workspaceId: WorkspaceId

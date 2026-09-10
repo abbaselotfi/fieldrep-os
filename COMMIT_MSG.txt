@@ -1,0 +1,9 @@
+P9-A1: organization & workspace feature administration core
+
+- domain/src/org-unit-tree.ts: deterministic org-unit tree build,
+  descendant-scope resolution (orgUnitContains), cycle/cross-workspace
+  parent-change guards (PERMISSION-MATRIX g3) + 9 tests
+- domain/src/workspace-feature-policy.ts: fail-closed workspace feature gates + 5 tests
+- permissions: WORKSPACE_ADMIN_PERMISSIONS (g8) + COMPANY_ADMIN_PERMISSIONS (g9)
+  bundles; company admin never implies operational workspace access
+- ROADMAP: P8 status table + P9-A1 closure + P9-A2..A5 backlog
