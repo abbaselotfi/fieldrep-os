@@ -494,7 +494,7 @@ Scope: users/admins/supervisors, teams/org units, master customers/products/rout
 |------|-------------|--------|
 | P9-A1 | Organization & feature administration core — `org-unit-tree.ts` (deterministic tree, descendant scope resolution, cycle/cross-workspace parent guards) + `workspace-feature-policy.ts` (fail-closed workspace feature gates) + workspace-admin & company-admin permission bundles (PERMISSION-MATRIX §8/§9) | DONE (2026-09-10) |
 | P9-A2 | Org-unit/membership repositories + admin endpoints — `org-admin-repository.ts` (workspace-scoped store, cycle/cross-workspace guards, feature-setting upserts) + `org-admin-api.ts` (org-unit tree/move, membership assign, feature toggle read/write, permission-scoped) | DONE (2026-09-10) |
-| P9-A3 | Master data catalog (customers/products/routes) + import administration | NEXT |
+| P9-A3 | Master data catalog (customers/products/routes) + import administration | DONE (2026-09-11) |
 | P9-A4 | Working-calendar, holidays/events, targets policy administration | PENDING |
 | P9-A5 | Admin reporting + audit access UI | PENDING |
 
@@ -525,6 +525,19 @@ Acceptance: 19 new focused tests; full suite 69 test files / 393 tests green; ga
 ## P10 — Platform Administration
 
 Scope: companies/workspaces, limits/entitlements, global settings, workspace database routing registry, security/audit center, platform analytics and audited support/data-access workflows.
+
+### P10-A1 — Platform Admin Foundation: Companies, Workspaces, Limits (DONE)
+
+- Domain module `platform-admin.ts`:
+  - `Company`/`Workspace` lifecycle models mirroring control-plane migration-0001 schema (slug-based, status `active/suspended/archived`);
+  - `PlatformLimits` aggregate with usage (`canCreateWorkspace`/`canAddUser` guards);
+  - `slugifyName` deterministic slug derivation for company/workspace names.
+- Migration `0002_platform_admin.sql` — dedicated `platform_limits` ledger (companies/workspaces already in 0001; limits never embedded in the tenant rows).
+- Repository `platform-admin-repository.ts` — `ControlPlanePlatformAdminRepository` over the control database (not the workspace router): list/get/create companies & workspaces, status transitions, `getLimits` with fail-safe defaults, idempotent `updateLimits` upsert, archived-aware workspace counting.
+- API `platform-admin-api.ts` — permission-scoped per PERMISSION-MATRIX §10 (`companies.read/manage`, `workspaces.read.all/manage`, `limits.read/manage`): `GET/POST /platform/companies`, `GET/POST /platform/companies/:id/workspaces`, `GET/PUT /platform/companies/:id/limits` with 404 on unknown company.
+- Competitive basis: Veeva Vault platform admin console + tenant limits, OCE org provisioning patterns (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 26 new focused tests (7 domain + 9 repository + 11 API — plus 2 platform-admin domain guard tests); full suite 76 test files / 455 tests green; typecheck, migrations (control 2 + workspace 10), web+worker builds pass.
 
 ---
 
