@@ -69,3 +69,10 @@ export type {
   OrgUnitMembershipRow,
 } from './org-admin-repository'
 export { WorkspaceOrgAdminRepository } from './org-admin-repository'
+export type {
+  MasterDataRepository,
+  UpsertCustomerInput,
+  UpsertProductInput,
+  UpsertRouteInput,
+} from './master-data-repository'
+export { WorkspaceMasterDataRepository } from './master-data-repository'
