@@ -345,3 +345,15 @@ export {
   isWorkspaceFeatureEnabled,
   resolveWorkspaceFeatureState,
 } from './workspace-feature-policy'
+
+export type {
+  Company,
+  CompanyStatus,
+  CreateCompanyInput,
+  CreateWorkspaceInput,
+  PlatformLimits,
+  UpdateLimitsInput,
+  Workspace,
+  WorkspaceStatus,
+} from './platform-admin'
+export { canAddUser, canCreateWorkspace, deriveLimitsUsage, slugifyName } from './platform-admin'

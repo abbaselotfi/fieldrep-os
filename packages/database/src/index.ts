@@ -76,3 +76,6 @@ export type {
   UpsertRouteInput,
 } from './master-data-repository'
 export { WorkspaceMasterDataRepository } from './master-data-repository'
+
+export type { PlatformAdminRepository } from './platform-admin-repository'
+export { ControlPlanePlatformAdminRepository } from './platform-admin-repository'

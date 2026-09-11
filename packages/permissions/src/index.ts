@@ -88,6 +88,23 @@ export const COMPANY_ADMIN_PERMISSIONS = {
   auditReadCompany: 'audit.read.company',
 } as const satisfies Record<string, PermissionKey>
 
+/**
+ * Platform admin permissions (PERMISSION-MATRIX §10). Platform scope is
+ * authoritative: a platform admin manages companies, workspaces, limits,
+ * and global settings — but never implies operational access inside a workspace.
+ */
+export const PLATFORM_ADMIN_PERMISSIONS = {
+  companiesRead: 'companies.read',
+  companiesManage: 'companies.manage',
+  workspacesReadAll: 'workspaces.read.all',
+  workspacesManage: 'workspaces.manage',
+  limitsRead: 'limits.read',
+  limitsManage: 'limits.manage',
+  platformSettingsRead: 'platform.settings.read',
+  platformSettingsManage: 'platform.settings.manage',
+  auditReadAll: 'audit.read.all',
+} as const satisfies Record<string, PermissionKey>
+
 export interface ResourceScope {
   companyId: CompanyId
   workspaceId: WorkspaceId
