@@ -495,7 +495,7 @@ Scope: users/admins/supervisors, teams/org units, master customers/products/rout
 | P9-A1 | Organization & feature administration core — `org-unit-tree.ts` (deterministic tree, descendant scope resolution, cycle/cross-workspace parent guards) + `workspace-feature-policy.ts` (fail-closed workspace feature gates) + workspace-admin & company-admin permission bundles (PERMISSION-MATRIX §8/§9) | DONE (2026-09-10) |
 | P9-A2 | Org-unit/membership repositories + admin endpoints — `org-admin-repository.ts` (workspace-scoped store, cycle/cross-workspace guards, feature-setting upserts) + `org-admin-api.ts` (org-unit tree/move, membership assign, feature toggle read/write, permission-scoped) | DONE (2026-09-10) |
 | P9-A3 | Master data catalog (customers/products/routes) + import administration | DONE (2026-09-11) |
-| P9-A4 | Working-calendar, holidays/events, targets policy administration | PENDING |
+| P9-A4 | Working-calendar, holidays/events, targets policy administration | DONE (2026-09-11) |
 | P9-A5 | Admin reporting + audit access UI | PENDING |
 
 ### P9-A1 — Organization & Feature Administration Core (DONE)
@@ -521,6 +521,24 @@ Scope: users/admins/supervisors, teams/org units, master customers/products/rout
 Acceptance: 15 focused tests; full suite 71 test files / 408 tests green; gates (typecheck, migrations, P2/P3/P4) and web+worker builds pass.
 
 Acceptance: 19 new focused tests; full suite 69 test files / 393 tests green; gates (typecheck, migrations, P2/P3/P4) and web+worker builds pass.
+
+### P9-A4 — Working-Calendar, Closures & Targets Policy Administration (DONE)
+
+- Domain module `calendar-admin-contracts.ts`:
+  - `CalendarClosureLevel` / `CreateCalendarClosureInput` shared contracts;
+  - `TargetsPolicy` aggregate (class frequency map, default daily target, max daily visits) + deterministic `normalizeTargetsPolicy` (clamps negatives/non-integers, drops malformed class weights) and `DEFAULT_TARGETS_POLICY` defaults.
+- Repository `calendar-admin-repository.ts` — `WorkspaceCalendarAdminRepository` (small, admin-only):
+  - working-calendar config read/update (idempotent upsert, invalid weekday indexes filtered);
+  - `createClosure` upsert by natural key `(workspace_id, closure_level, canonical_date)` — repeated insert of the same holiday updates the label, never duplicates (Sanofi/Veeva holiday-management pattern);
+  - `deleteClosure` physical delete (closures are policy rows, not audit facts);
+  - targets policy read/update over the generic `workspace_settings` store keyed `planning:targets` (fail-safe defaults; merge-on-write).
+- API `calendar-admin-api.ts` — permission-scoped per PERMISSION-MATRIX §8:
+  - `GET/PUT /workspaces/:id/calendar-config` (`calendar.manage.workspace`);
+  - `GET/POST /workspaces/:id/closures` + `DELETE .../closures/:id` (`holidays.manage.workspace`), canonical-date validation and range inversion guard;
+  - `GET/PUT /workspaces/:id/targets-policy` (`targets.manage.workspace`), empty-patch rejection.
+- Competitive basis: Veeva Vault holiday/closure scheduling + OCE org targeting (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 30 new focused tests (8 repository + 15 API + 7 platform-admin domain from P10-A1); full suite 78 test files / 478 tests green; typecheck, migrations, web+worker builds pass.
 
 ## P10 — Platform Administration
 

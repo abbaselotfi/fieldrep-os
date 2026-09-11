@@ -357,3 +357,12 @@ export type {
   WorkspaceStatus,
 } from './platform-admin'
 export { canAddUser, canCreateWorkspace, deriveLimitsUsage, slugifyName } from './platform-admin'
+export type {
+  CalendarClosureLevel,
+  CreateCalendarClosureInput,
+  TargetsPolicy,
+} from './calendar-admin-contracts'
+export {
+  DEFAULT_TARGETS_POLICY,
+  normalizeTargetsPolicy,
+} from './calendar-admin-contracts'
