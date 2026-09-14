@@ -103,6 +103,8 @@ export const PLATFORM_ADMIN_PERMISSIONS = {
   platformSettingsRead: 'platform.settings.read',
   platformSettingsManage: 'platform.settings.manage',
   auditReadAll: 'audit.read.all',
+  databaseRoutesRead: 'database_routes.read',
+  databaseRoutesManage: 'database_routes.manage',
 } as const satisfies Record<string, PermissionKey>
 
 export interface ResourceScope {

@@ -572,6 +572,25 @@ Scope: companies/workspaces, limits/entitlements, global settings, workspace dat
 
 Acceptance: 26 new focused tests (7 domain + 9 repository + 11 API — plus 2 platform-admin domain guard tests); full suite 76 test files / 455 tests green; typecheck, migrations (control 2 + workspace 10), web+worker builds pass.
 
+### P10-A2 — Platform Audit Center + Data-Route Registry (DONE)
+
+- Domain module `platform-operations.ts`:
+  - `PlatformAuditEvent` / `PlatformAuditEventFilter` mirroring the control-plane `platform_audit_events` table (company/workspace/actor/action/target-type/time filters are narrowing-only);
+  - `WorkspaceDataRoute` / `UpsertDataRouteInput` mirroring `workspace_data_routes` (`d1/service/sql/other` stores, `active/maintenance/disabled` statuses);
+  - deterministic `validateRouteStatusChange` — fail-closed transition guard: a disabled route may only return via `active` (health re-check forced), `disabled → maintenance` is rejected; same-status updates are idempotent.
+- Repository `platform-operations-repository.ts` — `ControlPlanePlatformOperationsRepository` over the control database:
+  - platform-scope audit reads with optional narrowing filters, `ORDER BY occurred_at DESC, id`, limit clamped (default cap 200);
+  - `recordAuditEvent` (serialized metadata) — the write path later admin/support workflows will use to leave auditable traces;
+  - data-route list (sorted by workspace id), get, idempotent `upsertDataRoute` preserving `created_at` on conflict.
+- API `platform-operations-api.ts` — permission-scoped per PERMISSION-MATRIX §10:
+  - `GET /platform/audit-events` + `GET /platform/audit-events/report/summary` (`audit.read.all`) — the summary reuses the deterministic P9-A5 projection, mapping `target_type` onto the shared dimension;
+  - `GET /platform/data-routes`, `GET /platform/data-routes/:workspaceId` (404 unknown) (`database_routes.read`);
+  - `PUT /platform/data-routes/:workspaceId` (`database_routes.manage`) — 400 `invalid_data_route` on bad payload, 409 `route_transition_invalid` on guarded transitions, 201 create / 200 update.
+- Permissions bundle: `database_routes.read` / `database_routes.manage` added to `PLATFORM_ADMIN_PERMISSIONS` (§10 keys `platform.database_routes.read/manage` in matrix notation; `audit.read.all` already present).
+- Competitive basis: Veeva Vault platform audit trail + tenant database routing registry (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 25 new focused tests (6 domain + 8 repository + 11 API); full suite 84 test files / 518 tests green; typecheck, migrations (control 2 + workspace 10), web+worker builds pass. No new migration (tables from control 0001).
+
 ---
 
 ## P11 — Dataset Catalog / Vault / Allocation

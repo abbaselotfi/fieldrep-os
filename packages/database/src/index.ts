@@ -83,3 +83,6 @@ export { WorkspaceAuditRepository } from './audit-repository'
 
 export type { PlatformAdminRepository } from './platform-admin-repository'
 export { ControlPlanePlatformAdminRepository } from './platform-admin-repository'
+
+export type { PlatformOperationsRepository } from './platform-operations-repository'
+export { ControlPlanePlatformOperationsRepository } from './platform-operations-repository'

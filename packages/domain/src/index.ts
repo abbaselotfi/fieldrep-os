@@ -373,3 +373,19 @@ export type {
   AuditEventFilter,
 } from './admin-audit'
 export { buildAuditActionSummary } from './admin-audit'
+
+export type {
+  DataRouteStatus,
+  DataRouteStoreType,
+  PlatformAuditEvent,
+  PlatformAuditEventFilter,
+  RecordPlatformAuditEventInput,
+  RouteStatusChangeValidity,
+  UpsertDataRouteInput,
+  WorkspaceDataRoute,
+} from './platform-operations'
+export {
+  isDataRouteStatus,
+  isDataRouteStoreType,
+  validateRouteStatusChange,
+} from './platform-operations'
