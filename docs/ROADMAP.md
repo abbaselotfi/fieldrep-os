@@ -496,7 +496,7 @@ Scope: users/admins/supervisors, teams/org units, master customers/products/rout
 | P9-A2 | Org-unit/membership repositories + admin endpoints — `org-admin-repository.ts` (workspace-scoped store, cycle/cross-workspace guards, feature-setting upserts) + `org-admin-api.ts` (org-unit tree/move, membership assign, feature toggle read/write, permission-scoped) | DONE (2026-09-10) |
 | P9-A3 | Master data catalog (customers/products/routes) + import administration | DONE (2026-09-11) |
 | P9-A4 | Working-calendar, holidays/events, targets policy administration | DONE (2026-09-11) |
-| P9-A5 | Admin reporting + audit access UI | PENDING |
+| P9-A5 | Admin reporting + audit access UI | DONE (2026-09-15) |
 
 ### P9-A1 — Organization & Feature Administration Core (DONE)
 
@@ -539,6 +539,21 @@ Acceptance: 19 new focused tests; full suite 69 test files / 393 tests green; ga
 - Competitive basis: Veeva Vault holiday/closure scheduling + OCE org targeting (`COMPETITIVE-ANALYSIS.md` §3).
 
 Acceptance: 30 new focused tests (8 repository + 15 API + 7 platform-admin domain from P10-A1); full suite 78 test files / 478 tests green; typecheck, migrations, web+worker builds pass.
+
+### P9-A5 — Admin Reporting + Audit Access (DONE)
+
+- Domain module `admin-audit.ts`:
+  - `AuditEvent` / `AuditEventFilter` contracts and `buildAuditActionSummary` — deterministic aggregation (count-desc, then `actionKey` sort) of audit events into `AuditActionSummary` rows for the admin reporting surface.
+- Repository `audit-repository.ts` — `WorkspaceAuditRepository` over `workspace_audit_events`:
+  - `workspace_id` is always the first WHERE condition (fail-closed tenancy — a filter can never widen scope, only narrow it);
+  - optional actor/entity/action/time-range filters; `ORDER BY occurred_at DESC`; limit clamped with default cap 200.
+- API `audit-admin-api.ts` — permission-scoped per PERMISSION-MATRIX §8:
+  - `GET /workspaces/:id/audit-events` (`audit.read.workspace`);
+  - `GET /workspaces/:id/admin/report/audit-summary` (`reports.read.workspace`), aggregated via `buildAuditActionSummary`;
+  - zod query validation (limit max 200); 401/403 and cross-workspace-before-resolution guards tested.
+- Competitive basis: Veeva Vault audit-trail review + OCE admin reporting patterns (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 15 new focused tests (2 domain + 5 repository + 8 API); full suite 81 test files / 493 tests green; typecheck, migrations (control 2 + workspace 10), web+worker builds pass.
 
 ## P10 — Platform Administration
 

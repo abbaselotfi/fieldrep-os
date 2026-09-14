@@ -78,6 +78,8 @@ export type {
 export { WorkspaceMasterDataRepository } from './master-data-repository'
 export type { CalendarAdminRepository } from './calendar-admin-repository'
 export { WorkspaceCalendarAdminRepository } from './calendar-admin-repository'
+export type { AuditRepository } from './audit-repository'
+export { WorkspaceAuditRepository } from './audit-repository'
 
 export type { PlatformAdminRepository } from './platform-admin-repository'
 export { ControlPlanePlatformAdminRepository } from './platform-admin-repository'

@@ -366,3 +366,10 @@ export {
   DEFAULT_TARGETS_POLICY,
   normalizeTargetsPolicy,
 } from './calendar-admin-contracts'
+
+export type {
+  AuditActionSummary,
+  AuditEvent,
+  AuditEventFilter,
+} from './admin-audit'
+export { buildAuditActionSummary } from './admin-audit'
