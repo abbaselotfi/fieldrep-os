@@ -95,3 +95,11 @@ export type {
   PlatformSettingsRepository,
 } from './platform-settings-repository'
 export { ControlPlanePlatformSettingsRepository } from './platform-settings-repository'
+
+export type {
+  CreateVersionInput,
+  DatasetCatalogRepository,
+  GuardedAssignmentResult,
+  GuardedVersionResult,
+} from './dataset-catalog-repository'
+export { ControlPlaneDatasetCatalogRepository } from './dataset-catalog-repository'

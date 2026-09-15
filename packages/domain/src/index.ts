@@ -425,3 +425,29 @@ export {
   resolveEntitlementState,
   validateEntitlementWindow,
 } from './platform-settings'
+
+export type {
+  AssignmentMode,
+  CreateDatasetAssignmentInput,
+  CreateDatasetInput,
+  Dataset,
+  DatasetAssignment,
+  DatasetAssignmentStatus,
+  DatasetOwnerType,
+  DatasetSourceType,
+  DatasetStatus,
+  DatasetType,
+  DatasetVersion,
+  DatasetVersionStatus,
+  GuardResult,
+} from './dataset-catalog'
+export {
+  isDatasetStatus,
+  isDatasetType,
+  isDatasetVersionMutable,
+  resolveAssignmentState,
+  validateAssignmentMode,
+  validateAssignmentWindow,
+  validateDatasetVersionStatusChange,
+  validatePublicationReadiness,
+} from './dataset-catalog'

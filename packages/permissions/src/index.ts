@@ -111,6 +111,15 @@ export const PLATFORM_ADMIN_PERMISSIONS = {
   workspaceDataExport: 'workspace_data.export',
   supportAccessStart: 'support_access.start',
   featuresManage: 'features.manage',
+  datasetsRead: 'datasets.read',
+  datasetsImport: 'datasets.import',
+  datasetsNormalize: 'datasets.normalize',
+  datasetsVersion: 'datasets.version',
+  datasetsBuild: 'datasets.build',
+  datasetsDeduplicate: 'datasets.deduplicate',
+  datasetsAssign: 'datasets.assign',
+  datasetsRevoke: 'datasets.revoke',
+  datasetsExport: 'datasets.export',
 } as const satisfies Record<string, PermissionKey>
 
 export interface ResourceScope {

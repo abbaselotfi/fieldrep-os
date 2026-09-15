@@ -9,7 +9,8 @@
 **P8 status:** COMPLETE — supervisor workspace (team rollup + member drill-down + scoped export)
 **P9 status:** COMPLETE — company & workspace administration (org units/features, master data, calendar/targets, audit reporting)
 **P10 status:** COMPLETE — platform administration (companies/workspaces/limits, audit center, data routes, analytics/support access, settings/entitlements)  
-**Current work item:** P11 — Dataset Catalog / Vault / Allocation
+**P11 status:** P11-A1 DONE — dataset catalog foundation (contracts/guards, control tables, repository, scoped API)
+**Current work item:** P11-A2 — dataset import & normalization pipeline
 
 ## Product priority
 
@@ -641,6 +642,33 @@ Acceptance: 33 new focused tests (11 domain + 8 repository + 14 API); full suite
 ## P11 — Dataset Catalog / Vault / Allocation
 
 Scope: imported/purchased/curated datasets, raw archive, provenance/versioning, normalization/dedup review, practitioner matching, dataset splitting/building, snapshot/live assignment and export/licensing controls.
+
+### Status
+
+| Step | Description | Status |
+|------|-------------|--------|
+| P11-A1 | Dataset catalog foundation — dataset/version/assignment contracts with fail-closed publication + assignment guards (DATA-MODEL §6), control-plane catalog tables, catalog repository and permission-scoped API (§11) | DONE (2026-09-15) |
+| P11-A2 | Import & normalization pipeline — raw archive reference, import ledger, normalization/dedup review | PENDING |
+| P11-A3 | Practitioner matching & dataset splitting/building | PENDING |
+| P11-A4 | Export/licensing controls + assignment enforcement in the tenant data path | PENDING |
+
+### P11-A1 — Dataset Catalog Foundation (DONE)
+
+- Domain module `dataset-catalog.ts` (mirrors `DATA-MODEL.md` §6.1–§6.5):
+  - `Dataset` / `DatasetVersion` / `DatasetAssignment` models with the documented type, status, source and mode taxonomies (`practitioners|pharmacies|hospitals|clinics|mixed`, `snapshot|live`, …);
+  - deterministic lifecycle guards: `validateDatasetVersionStatusChange` (published versions may only be superseded — immutability per §6.3), `isDatasetVersionMutable`, `validatePublicationReadiness` (only a non-empty draft may be published — an empty dataset must never become the assignable truth);
+  - assignment guards: `validateAssignmentWindow` (inverted windows rejected), `validateAssignmentMode` (snapshot requires a pinned version, live forbids one) and the fail-closed `resolveAssignmentState` (only an `active` assignment inside its window grants access).
+- Migration `0005_dataset_catalog.sql` (control) — `datasets`, `dataset_sources`, `dataset_versions`, `dataset_imports`, `dataset_assignments` with CHECK constraints on every taxonomy, FK links to companies/workspaces, and DB-level mode/version coherence + window ordering CHECKs.
+- Repository `dataset-catalog-repository.ts` — `ControlPlaneDatasetCatalogRepository`:
+  - dataset/version/assignment reads (sorted, deterministic) and creation;
+  - `publishVersion` re-validates readiness **before** writing and, on success, supersedes the dataset's previous published version so exactly one published head exists;
+  - `createAssignment` re-validates mode/window guards and never writes on rejection; initial status is derived deterministically (`active` when the window already opened, otherwise `pending`);
+  - `revokeAssignment` is terminal — a repeat revocation is reported without a second write; `resolveState` exposes the fail-closed effective state.
+- API `dataset-catalog-api.ts` — permission-scoped per PERMISSION-MATRIX §11: catalog reads (`datasets.read`), dataset creation (`datasets.import`), version creation (`datasets.version`), publication (`datasets.build`), assignment (`datasets.assign`) and revocation (`datasets.revoke`); 400 invalid payload, 404 unknown, 409 refused publication/assignment/already-revoked.
+- Permissions bundle: `datasets.read|import|normalize|version|build|deduplicate|assign|revoke|export` added to `PLATFORM_ADMIN_PERMISSIONS` (§11 keys `platform.datasets.*`).
+- Competitive basis: Veeva Vault dataset/version licensing + IQVIA-style practitioner dataset allocation (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 46 new focused tests (10 domain + 15 repository + 21 API); full suite 93 test files / 626 tests green; typecheck, migrations (control 5 + workspace 10), web+worker builds pass.
 
 ---
 
