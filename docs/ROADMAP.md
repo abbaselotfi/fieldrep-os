@@ -591,6 +591,27 @@ Acceptance: 26 new focused tests (7 domain + 9 repository + 11 API — plus 2 pl
 
 Acceptance: 25 new focused tests (6 domain + 8 repository + 11 API); full suite 84 test files / 518 tests green; typecheck, migrations (control 2 + workspace 10), web+worker builds pass. No new migration (tables from control 0001).
 
+### P10-A3 — Platform Analytics + Audited Support-Access Workflows (DONE)
+
+- Domain module `platform-support.ts`:
+  - `SupportAccessGrant` lifecycle (`requested → approved | denied`, `approved → revoked | expired`) with `SUPPORT_ACCESS_DECISION_EVENTS` mapping each decision to its audit action key (`support_access.requested/approved/denied/revoked/expired`);
+  - deterministic `validateSupportAccessTransition` — terminal states (`denied`/`revoked`/`expired`) reject every decision so the grant history stays immutable; `isSupportAccessActive` fails closed (only an unexpired `approved` grant is active);
+  - `SupportAccessGrantFilter` (narrowing-only reads) and `buildPlatformUsageOverview` — deterministic status rollup for companies/workspaces/data routes.
+- Migration `0003_support_access.sql` (control) — `support_access_grants` ledger with status CHECK, workspace FK and workspace/status indexes.
+- Repository `platform-support-repository.ts` — `ControlPlanePlatformSupportRepository`:
+  - `createSupportAccessGrant` (always starts `requested`), `listSupportAccessGrants` (newest-first, workspace/status narrowing, clamped limit), `getSupportAccessGrant`;
+  - `decideSupportAccessGrant` — re-validates the domain transition **before** writing and returns `transition: 'rejected'` without a write otherwise; approval may carry a `durationMs` window that sets `expires_at`;
+  - `getUsageOverview` — `GROUP BY status` rollups over companies/workspaces/workspace_data_routes.
+- API `platform-support-api.ts` — permission-scoped per PERMISSION-MATRIX §10 ("governed, scoped, and auditable"):
+  - `GET /platform/analytics/usage` (`platform.settings.read`);
+  - `GET /platform/support-access-grants` (`security.read`) with workspace/status filters (unknown status → 400);
+  - `POST /platform/support-access-grants` (`support_access.start`) → 201 + `support_access.requested` audit event;
+  - `POST /platform/support-access-grants/:grantId/decision` (`support_access.start`) → 404 unknown, 409 `support_access_transition_invalid` (no audit event written), otherwise the mapped decision audit event with the acting admin as actor.
+- Permissions bundle: `users.read`, `security.read`, `workspace_data.read`, `workspace_data.export`, `support_access.start` added to `PLATFORM_ADMIN_PERMISSIONS` (§10).
+- Competitive basis: Veeva Vault governed support access + platform usage reporting (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 29 new focused tests (10 domain + 7 repository + 12 API); full suite 87 test files / 547 tests green; typecheck, migrations (control 3 + workspace 10), web+worker builds pass.
+
 ---
 
 ## P11 — Dataset Catalog / Vault / Allocation

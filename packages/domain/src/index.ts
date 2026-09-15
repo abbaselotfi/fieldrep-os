@@ -389,3 +389,21 @@ export {
   isDataRouteStoreType,
   validateRouteStatusChange,
 } from './platform-operations'
+
+export type {
+  CreateSupportAccessGrantInput,
+  DecideSupportAccessInput,
+  PlatformUsageOverview,
+  SupportAccessDecision,
+  SupportAccessGrant,
+  SupportAccessGrantFilter,
+  SupportAccessStatus,
+  SupportAccessTransitionValidity,
+} from './platform-support'
+export {
+  buildPlatformUsageOverview,
+  isSupportAccessActive,
+  isSupportAccessStatus,
+  SUPPORT_ACCESS_DECISION_EVENTS,
+  validateSupportAccessTransition,
+} from './platform-support'

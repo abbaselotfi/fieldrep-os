@@ -86,3 +86,6 @@ export { ControlPlanePlatformAdminRepository } from './platform-admin-repository
 
 export type { PlatformOperationsRepository } from './platform-operations-repository'
 export { ControlPlanePlatformOperationsRepository } from './platform-operations-repository'
+
+export type { PlatformSupportRepository } from './platform-support-repository'
+export { ControlPlanePlatformSupportRepository } from './platform-support-repository'
