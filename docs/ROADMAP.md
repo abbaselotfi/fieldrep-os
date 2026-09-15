@@ -5,8 +5,11 @@
 **P1 status:** COMPLETE — authenticated Field User shell/test-security gate passed  
 **P2 status:** COMPLETE — real XLSM compatibility + Excel-parity regression gate passed  
 **P3 status:** COMPLETE — operational calendar domain/APIs/UI + conflict-engine gate passed  
-**P4 status:** P4-A1 COMPLETE — offline PWA foundation (IndexedDB workspace cache)  
-**Current work item:** P4-A2 — authorized offline cache wiring + idempotent sync endpoints
+**P4 status:** P4-A1 COMPLETE — offline PWA foundation (IndexedDB workspace cache)
+**P8 status:** COMPLETE — supervisor workspace (team rollup + member drill-down + scoped export)
+**P9 status:** COMPLETE — company & workspace administration (org units/features, master data, calendar/targets, audit reporting)
+**P10 status:** COMPLETE — platform administration (companies/workspaces/limits, audit center, data routes, analytics/support access, settings/entitlements)  
+**Current work item:** P11 — Dataset Catalog / Vault / Allocation
 
 ## Product priority
 
