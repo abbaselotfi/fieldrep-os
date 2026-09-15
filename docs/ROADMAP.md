@@ -612,6 +612,27 @@ Acceptance: 25 new focused tests (6 domain + 8 repository + 11 API); full suite 
 
 Acceptance: 29 new focused tests (10 domain + 7 repository + 12 API); full suite 87 test files / 547 tests green; typecheck, migrations (control 3 + workspace 10), web+worker builds pass.
 
+### P10-A4 — Global Platform Settings + Feature Entitlements (DONE)
+
+- Domain module `platform-settings.ts`:
+  - `PlatformGlobalSettings` (self-service provisioning, support-access approval requirement, default support window, default workspace schema version) with `DEFAULT_PLATFORM_GLOBAL_SETTINGS` — fail-safe defaults (self-service off, approval required, 4-hour window);
+  - deterministic `normalizePlatformGlobalSettings(base, patch)` — merges over stored values, clamps the support window into `[5 min, 30 days]`, coerces schema version ≥ 1, and falls back to base on malformed numbers;
+  - `FeatureEntitlement` + `validateEntitlementWindow` (inverted windows rejected before write) and the fail-closed `resolveEntitlementState` — explicit `disabled`/`expired` stay disabled, not-yet-started schedules resolve to disabled, and a past `ends_at` is disabled (exclusive bound).
+- Migration `0004_platform_settings.sql` (control) — `platform_settings` key/value ledger (entitlements already exist as `feature_entitlements` in 0001).
+- Repository `platform-settings-repository.ts` — `ControlPlanePlatformSettingsRepository`:
+  - `getGlobalSettings` / `updateGlobalSettings` (idempotent upsert keyed `global`; corrupt stored JSON falls back to defaults rather than throwing);
+  - `listEntitlements` (company-scoped, sorted by feature key then workspace), `getEntitlement` (company-level `workspace_id IS NULL` vs workspace override), `upsertEntitlement` — natural-key aware insert-or-update that preserves `created_at` and supports explicit window clearing (`null`) versus keep (`undefined`).
+- API `platform-settings-api.ts` — permission-scoped per PERMISSION-MATRIX §10:
+  - `GET/PUT /platform/settings` (`platform.settings.read` / `platform.settings.manage`), empty patch rejected 400;
+  - `GET /platform/companies/:companyId/entitlements` and `PUT /platform/companies/:companyId/entitlements/:featureKey` (`features.manage`) → 201 create / 200 update, 404 unknown on read;
+  - every entitlement response carries the computed `effectiveState` (fail-closed) alongside the stored status/window; inverted windows → 409 `entitlement_window_invalid`, unknown status → 400.
+- Permissions bundle: `features.manage` added to `PLATFORM_ADMIN_PERMISSIONS` (§10 key `platform.features.manage`).
+- Competitive basis: Veeva Vault platform feature/licensing gates + global tenant configuration (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 33 new focused tests (11 domain + 8 repository + 14 API); full suite 90 test files / 580 tests green; typecheck, migrations (control 4 + workspace 10), web+worker builds pass.
+
+**P10 status: COMPLETE** — companies/workspaces/limits (A1), workspace database routing registry + platform audit center (A2), platform analytics + audited support/data-access workflows (A3), global settings + feature entitlements (A4).
+
 ---
 
 ## P11 — Dataset Catalog / Vault / Allocation

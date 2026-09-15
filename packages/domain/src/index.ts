@@ -407,3 +407,21 @@ export {
   SUPPORT_ACCESS_DECISION_EVENTS,
   validateSupportAccessTransition,
 } from './platform-support'
+
+export type {
+  EntitlementStatus,
+  FeatureEntitlement,
+  PlatformGlobalSettings,
+  PlatformGlobalSettingsPatch,
+  ResolvedEntitlementState,
+  UpsertEntitlementInput,
+} from './platform-settings'
+export {
+  DEFAULT_PLATFORM_GLOBAL_SETTINGS,
+  isEntitlementStatus,
+  MAX_SUPPORT_ACCESS_DURATION_MS,
+  MIN_SUPPORT_ACCESS_DURATION_MS,
+  normalizePlatformGlobalSettings,
+  resolveEntitlementState,
+  validateEntitlementWindow,
+} from './platform-settings'

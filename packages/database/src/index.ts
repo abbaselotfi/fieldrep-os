@@ -89,3 +89,9 @@ export { ControlPlanePlatformOperationsRepository } from './platform-operations-
 
 export type { PlatformSupportRepository } from './platform-support-repository'
 export { ControlPlanePlatformSupportRepository } from './platform-support-repository'
+
+export type {
+  PlatformGlobalSettingsPatchInput,
+  PlatformSettingsRepository,
+} from './platform-settings-repository'
+export { ControlPlanePlatformSettingsRepository } from './platform-settings-repository'

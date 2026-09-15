@@ -110,6 +110,7 @@ export const PLATFORM_ADMIN_PERMISSIONS = {
   workspaceDataRead: 'workspace_data.read',
   workspaceDataExport: 'workspace_data.export',
   supportAccessStart: 'support_access.start',
+  featuresManage: 'features.manage',
 } as const satisfies Record<string, PermissionKey>
 
 export interface ResourceScope {
