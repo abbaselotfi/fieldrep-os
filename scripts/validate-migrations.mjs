@@ -109,6 +109,78 @@ applyMigrations(
           .run('membership-bad', 'user-1', 'company-b', 'workspace-a', 'active', now, now),
       'membership cannot claim a workspace from another company',
     )
+
+    // -- P11-A4: dataset licensing & export control -----------------------
+    db.prepare(
+      `INSERT INTO datasets (id, owner_type, name, dataset_type, status, source_type, created_at, updated_at)
+       VALUES (?, 'platform', 'Purchased practitioners', 'practitioners', 'published', 'purchase', ?, ?)`,
+    ).run('dataset-lic-1', now, now)
+
+    db.prepare(
+      `INSERT INTO dataset_versions (id, dataset_id, version_label, status, record_count, created_at)
+       VALUES (?, ?, '2026-09', 'published', 500, ?)`,
+    ).run('dataset-version-lic-1', 'dataset-lic-1', now)
+
+    db.prepare(
+      `INSERT INTO dataset_licenses (dataset_id, license_reference, export_allowed, redistribution_allowed, max_export_records, territory, updated_at)
+       VALUES (?, 'LIC-1', 1, 0, 100, 'IR', ?)`,
+    ).run('dataset-lic-1', now)
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO dataset_licenses (dataset_id, export_allowed, redistribution_allowed, updated_at)
+             VALUES (?, 0, 1, ?)`,
+          )
+          .run('dataset-lic-1', now),
+      'redistribution is a stronger right than export and requires it',
+    )
+
+    db.prepare(
+      `INSERT INTO dataset_exports (id, dataset_id, dataset_version_id, format, record_count, requested_by, status, created_at)
+       VALUES ('export-1', 'dataset-lic-1', 'dataset-version-lic-1', 'csv', 50, 'user-1', 'pending', ?)`,
+    ).run(now)
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO dataset_exports (id, dataset_id, dataset_version_id, format, record_count, status, created_at)
+             VALUES ('export-bad-format', 'dataset-lic-1', 'dataset-version-lic-1', 'pdf', 10, 'pending', ?)`,
+          )
+          .run(now),
+      'only governed export formats are accepted',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO dataset_exports (id, dataset_id, dataset_version_id, format, record_count, status, created_at)
+             VALUES ('export-undecided', 'dataset-lic-1', 'dataset-version-lic-1', 'csv', 10, 'completed', ?)`,
+          )
+          .run(now),
+      'a decided export always carries its decision timestamp',
+    )
+
+    db.prepare(
+      `INSERT INTO dataset_assignments
+        (id, dataset_id, dataset_version_id, recipient_company_id, mode, status, export_allowed, created_at, updated_at)
+       VALUES ('assignment-lic-1', 'dataset-lic-1', 'dataset-version-lic-1', 'company-a', 'snapshot', 'active', 0, ?, ?)`,
+    ).run(now, now)
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO dataset_assignments
+              (id, dataset_id, dataset_version_id, recipient_company_id, mode, status, export_allowed, created_at, updated_at)
+             VALUES ('assignment-lic-bad', 'dataset-lic-1', 'dataset-version-lic-1', 'company-a', 'snapshot', 'active', 7, ?, ?)`,
+          )
+          .run(now, now),
+      'assignment export flag is a strict boolean',
+    )
   },
 )
 

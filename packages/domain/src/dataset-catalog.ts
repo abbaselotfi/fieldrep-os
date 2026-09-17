@@ -55,6 +55,12 @@ export interface DatasetAssignment {
   recipientWorkspaceId: WorkspaceId | null
   mode: AssignmentMode
   status: DatasetAssignmentStatus
+  /**
+   * Assignment-level export governance (P11-A4, migration-0008 column,
+   * default true). `false` bars the recipient from exporting this dataset
+   * even when the catalog license would otherwise permit it.
+   */
+  exportAllowed?: boolean | undefined
   validFrom: number | null
   validUntil: number | null
   createdAt: number

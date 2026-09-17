@@ -509,3 +509,28 @@ export {
   validateBuildReadiness,
   validateMatchStatusChange,
 } from './dataset-matching'
+
+export type {
+  CreateDatasetExportInput,
+  DatasetExportEvaluation,
+  DatasetExportEvaluationInput,
+  DatasetExportFormat,
+  DatasetExportOutcome,
+  DatasetExportRecord,
+  DatasetExportStatus,
+  DatasetLicense,
+  DatasetLicenseInput,
+  TenantDatasetAccess,
+} from './dataset-licensing'
+export {
+  defaultLicenseTerms,
+  evaluateDatasetExport,
+  findTenantDatasetAccess,
+  isExportDecided,
+  isValidExportRecordCount,
+  normalizeLicenseTerms,
+  resolveDatasetLicense,
+  resolveTenantAccessVersionId,
+  resolveTenantDatasetAccess,
+  validateExportStatusChange,
+} from './dataset-licensing'

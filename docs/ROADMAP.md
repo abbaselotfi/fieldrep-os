@@ -9,8 +9,8 @@
 **P8 status:** COMPLETE — supervisor workspace (team rollup + member drill-down + scoped export)
 **P9 status:** COMPLETE — company & workspace administration (org units/features, master data, calendar/targets, audit reporting)
 **P10 status:** COMPLETE — platform administration (companies/workspaces/limits, audit center, data routes, analytics/support access, settings/entitlements)  
-**P11 status:** P11-A1 DONE — dataset catalog foundation (contracts/guards, control tables, repository, scoped API)
-**Current work item:** P11-A2 — dataset import & normalization pipeline
+**P11 status:** COMPLETE — dataset catalog/vault/allocation (catalog foundation, import & normalization, practitioner matching & dataset building, export/licensing controls + tenant data-path enforcement)
+**Current work item:** P12 — production hardening & scale
 
 ## Product priority
 
@@ -650,7 +650,26 @@ Scope: imported/purchased/curated datasets, raw archive, provenance/versioning, 
 | P11-A1 | Dataset catalog foundation — dataset/version/assignment contracts with fail-closed publication + assignment guards (DATA-MODEL §6), control-plane catalog tables, catalog repository and permission-scoped API (§11) | DONE (2026-09-15) |
 | P11-A2 | Import & normalization pipeline — raw archive reference, import ledger, normalization/dedup review | DONE (2026-09-18) |
 | P11-A3 | Practitioner matching & dataset splitting/building | DONE (2026-09-18) |
-| P11-A4 | Export/licensing controls + assignment enforcement in the tenant data path | PENDING |
+| P11-A4 | Export/licensing controls + assignment enforcement in the tenant data path | DONE (2026-09-18) |
+
+### P11-A4 — Export/Licensing Controls & Tenant Data-Path Enforcement (DONE)
+
+- Domain module `dataset-licensing.ts` (mirrors `DATA-MODEL.md` §6.2/§6.5 and PERMISSION-MATRIX §11 Example F):
+  - `DatasetLicense` terms (license reference, export/redistribution flags, per-export record cap, territory) with **fail-closed provenance defaults**: internal/curated datasets export without redistribution, purchased/partner/imported datasets stay locked until a license is registered (`defaultLicenseTerms`, `resolveDatasetLicense`);
+  - `normalizeLicenseTerms`: redistribution is treated as a strictly stronger right than export (implies it) and caps are clamped to non-negative integers or unlimited;
+  - `evaluateDatasetExport` — the deterministic, ordered export gate: an unpublished version is refused above every other rule, then license denial (including an assignment-level export ban), then assignment inactivity, then mode/version coherence (snapshot must export its pinned version, live must export the published head, platform exports the head only), then the record cap / invalid counts. Every refusal carries a stable machine-readable reason;
+  - export ledger with terminal decisions (`pending → completed|rejected`, `validateExportStatusChange`, `isExportDecided`) — `dataset_exports` is the audit record of what left the platform;
+  - tenant data-path enforcement: `resolveTenantDatasetAccess` (only assignments active *at `atMs`*, deterministic ordering, fail-closed when nothing is active), `resolveTenantAccessVersionId` (snapshot pinned; an incoherent snapshot resolves to null and never to the head; live follows the published head) and `findTenantDatasetAccess`.
+- Migration `0008_dataset_licensing.sql` (control) — `dataset_licenses` (boolean CHECKs plus the `redistribution_allowed = 0 OR export_allowed = 1` coherence CHECK), `dataset_exports` (format taxonomy, non-negative counts, `status = 'pending' OR completed_at IS NOT NULL` decision-integrity CHECK, FK RESTRICT to versions) and the assignment governance column `dataset_assignments.export_allowed` (strict boolean, default true) with a recipient index.
+- `DatasetAssignment` gained the optional `exportAllowed` field; both the catalog repository and the license repository select and map it consistently (absent/pre-0008 rows fall back to the DB default).
+- Repository `dataset-license-repository.ts` — `ControlPlaneDatasetLicenseRepository`: effective-license resolution (explicit row or provenance default), license up-insert with normalization, export ledger reads and creation that re-runs `evaluateDatasetExport` **before** any row exists (only the effective version is ever ledgered), `decideExport` (terminal, records the rejection reason + decision timestamp) and `listTenantAssignments` (recipient company rows, company-wide or workspace-scoped) as the enforcement read for the tenant data path.
+- API `dataset-license-api.ts` — permission-scoped per PERMISSION-MATRIX §11: license/export-ledger reads and tenant access resolution (`datasets.read`), license management, platform + tenant-scoped export requests and export decisions (`datasets.export`); 400 invalid payload, 404 unknown dataset/export, 409 refusals carrying the deterministic `reason` (`license_denied`, `version_not_published`, `assignment_inactive`, `assignment_version_mismatch`, `record_limit_exceeded`) or `export_already_decided`; `GET /platform/tenants/:companyId/datasets/access` is the enforcement surface the data path consults (empty array = serve nothing).
+- Migration validator now exercises the P11-A4 schema at the DB level (redistribution-without-export, unknown export format, decided export without a timestamp, non-boolean assignment export flag).
+- Competitive basis: IQVIA/Veeva-style dataset licensing & redistribution control with a per-export audit trail (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 49 new focused tests (21 domain + 12 repository + 16 API); full suite 102 test files / 765 tests green; typecheck, migrations (control 8 + workspace 10), web+worker builds pass.
+
+**P11 status: COMPLETE** — catalog foundation (A1), import/normalization pipeline (A2), practitioner matching & dataset splitting/building (A3), export/licensing controls with tenant data-path enforcement (A4).
 
 ### P11-A3 — Practitioner Matching & Dataset Splitting/Building (DONE)
 

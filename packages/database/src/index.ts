@@ -117,3 +117,11 @@ export type {
   GuardedMatchResult,
 } from './dataset-matching-repository'
 export { ControlPlaneDatasetMatchingRepository } from './dataset-matching-repository'
+
+export type {
+  DatasetExportContext,
+  DatasetLicenseRepository,
+  ExportDecisionResult,
+  GuardedExportResult,
+} from './dataset-license-repository'
+export { ControlPlaneDatasetLicenseRepository } from './dataset-license-repository'

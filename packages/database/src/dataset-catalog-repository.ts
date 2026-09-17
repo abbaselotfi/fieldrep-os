@@ -98,6 +98,8 @@ interface AssignmentRow {
   recipient_workspace_id: string | null
   mode: string
   status: string
+  /** Migration-0008 column; optional so pre-0008 fixtures stay valid. */
+  export_allowed?: number | undefined
   valid_from: number | null
   valid_until: number | null
   created_at: number
@@ -108,7 +110,7 @@ const DATASET_COLUMNS = 'id, owner_type, owner_id, name, dataset_type, status, s
 const VERSION_COLUMNS =
   'id, dataset_id, version_label, status, record_count, created_by, source_import_id, created_at, published_at'
 const ASSIGNMENT_COLUMNS =
-  'id, dataset_id, dataset_version_id, recipient_company_id, recipient_workspace_id, mode, status, valid_from, valid_until, created_at, updated_at'
+  'id, dataset_id, dataset_version_id, recipient_company_id, recipient_workspace_id, mode, status, export_allowed, valid_from, valid_until, created_at, updated_at'
 
 export class ControlPlaneDatasetCatalogRepository implements DatasetCatalogRepository {
   constructor(
@@ -389,6 +391,8 @@ function toAssignment(row: AssignmentRow): DatasetAssignment {
     recipientWorkspaceId: row.recipient_workspace_id,
     mode: row.mode as DatasetAssignment['mode'],
     status: row.status as DatasetAssignmentStatus,
+    // Migration-0008 column; absent rows fall back to the DB default (allowed).
+    exportAllowed: row.export_allowed === 0 ? false : true,
     validFrom: row.valid_from,
     validUntil: row.valid_until,
     createdAt: row.created_at,
