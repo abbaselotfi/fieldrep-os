@@ -103,3 +103,10 @@ export type {
   GuardedVersionResult,
 } from './dataset-catalog-repository'
 export { ControlPlaneDatasetCatalogRepository } from './dataset-catalog-repository'
+
+export type {
+  DatasetImportRepository,
+  GuardedCandidateResult,
+  GuardedImportResult,
+} from './dataset-import-repository'
+export { ControlPlaneDatasetImportRepository } from './dataset-import-repository'

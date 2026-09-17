@@ -451,3 +451,30 @@ export {
   validateDatasetVersionStatusChange,
   validatePublicationReadiness,
 } from './dataset-catalog'
+
+export type {
+  CreateDatasetImportInput,
+  DecideDuplicateCandidateInput,
+  DatasetImport,
+  DatasetImportStatus,
+  DuplicateReviewCandidate,
+  DuplicateReviewDecision,
+  DuplicateReviewStatus,
+  ImportQualityPolicy,
+  MatchingKeyInput,
+  NormalizationCounts,
+  RecordDuplicateCandidateInput,
+} from './dataset-import'
+export {
+  DEFAULT_IMPORT_QUALITY_POLICY,
+  buildMatchingKey,
+  evaluateImportQuality,
+  isCandidateDecided,
+  isRecordableCandidate,
+  normalizeImportQualityPolicy,
+  normalizePersianText,
+  normalizePhoneKey,
+  validateCandidateStatusChange,
+  validateImportStatusChange,
+  validateNormalizationCounts,
+} from './dataset-import'

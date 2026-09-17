@@ -648,9 +648,27 @@ Scope: imported/purchased/curated datasets, raw archive, provenance/versioning, 
 | Step | Description | Status |
 |------|-------------|--------|
 | P11-A1 | Dataset catalog foundation — dataset/version/assignment contracts with fail-closed publication + assignment guards (DATA-MODEL §6), control-plane catalog tables, catalog repository and permission-scoped API (§11) | DONE (2026-09-15) |
-| P11-A2 | Import & normalization pipeline — raw archive reference, import ledger, normalization/dedup review | PENDING |
+| P11-A2 | Import & normalization pipeline — raw archive reference, import ledger, normalization/dedup review | DONE (2026-09-18) |
 | P11-A3 | Practitioner matching & dataset splitting/building | PENDING |
 | P11-A4 | Export/licensing controls + assignment enforcement in the tenant data path | PENDING |
+
+### P11-A2 — Import & Normalization Pipeline (DONE)
+
+- Domain module `dataset-import.ts` (mirrors `DATA-MODEL.md` §6.4):
+  - `DatasetImport` ledger model over the migration-0005 `dataset_imports` table with the `received|normalized|failed` taxonomy and the strict partition invariant (`validateNormalizationCounts`: valid + invalid must account for every row — negative or non-covering counts are refused);
+  - deterministic quality gate: `evaluateImportQuality` folds an import whose valid-row share is below the (clamped, defaulted) `ImportQualityPolicy.minValidRatio` — an empty import always fails; the outcome is written as a ledger state (`failed`), never as a rejection;
+  - lifecycle guards: a `normalized` import is immutable (it is the provenance of a published version — `received→normalized|failed`, `failed→received` explicit retry, nothing may leave `normalized`);
+  - Persian-aware matching for the dedup review: `normalizePersianText` folds NFC + harakat/tatweel/Quranic marks, invisible joiners (ZWNJ/ZWJ behave like a space so "علی‌رضا" ≡ "علی رضا"), Arabic orthography (ي/ى/ئ→ی, ك/ڪ→ک, ة/ۀ→ه, hamza variants→ا, ؤ→و) and Persian/Arabic-Indic digits onto one canonical form; `normalizePhoneKey` folds `+98`/`0098` and trunk zeros; `buildMatchingKey` is deterministic with priority national id (10 digits) > phone (>9 digits) > normalized full name, `null` for unusable records (they must never match);
+  - duplicate-review contracts: `DuplicateReviewCandidate` with `pending|merged|kept_both|discarded` taxonomy, terminal decisions (`validateCandidateStatusChange`), `isRecordableCandidate` (a non-empty key + at least two distinct record refs).
+- Migration `0006_dataset_duplicates.sql` (control) — `dataset_duplicate_candidates` with taxonomy CHECKs, `UNIQUE (import_id, match_key)`, a `decided_at IS NULL OR status <> 'pending'` integrity CHECK, FK links to `datasets`/`dataset_imports` and a `(dataset_id, match_key, status)` review index.
+- Repository `dataset-import-repository.ts` — `ControlPlaneDatasetImportRepository`:
+  - import ledger reads/creation (`received` with zero counts) and `completeNormalization` which re-validates the state (`received` only), the partition invariant and the quality policy **before** writing — a `failed` quality outcome is a legitimate ledger write, only guard violations are rejected without one;
+  - `retryImport` reopens exactly a `failed` import (`received` has nothing to retry, `normalized` is immutable);
+  - duplicate candidates: filtered/sorted listing, `recordCandidate` (guarded recordability, never writes an invalid candidate) and `decideCandidate` (terminal — a repeat decision is refused without a write, with the deciding admin + timestamp recorded).
+- API `dataset-import-api.ts` — permission-scoped per PERMISSION-MATRIX §11: ledger reads + duplicate listing (`datasets.read`), import registration + retry (`datasets.import`), normalization completion (`datasets.normalize`), candidate recording + decisions (`datasets.deduplicate`); 400 invalid payload (the partition invariant is re-checked at the API boundary too), 404 unknown, 409 refused normalization/retry/invalid candidate/already-decided candidate.
+- Competitive basis: Veeva Vault-style import provenance + IQVIA-style dedup review (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 48 new focused tests (21 domain + 12 repository + 15 API); full suite 96 test files / 674 tests green; typecheck, migrations (control 6 + workspace 10), web+worker builds pass.
 
 ### P11-A1 — Dataset Catalog Foundation (DONE)
 
