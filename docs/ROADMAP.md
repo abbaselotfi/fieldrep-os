@@ -649,8 +649,23 @@ Scope: imported/purchased/curated datasets, raw archive, provenance/versioning, 
 |------|-------------|--------|
 | P11-A1 | Dataset catalog foundation — dataset/version/assignment contracts with fail-closed publication + assignment guards (DATA-MODEL §6), control-plane catalog tables, catalog repository and permission-scoped API (§11) | DONE (2026-09-15) |
 | P11-A2 | Import & normalization pipeline — raw archive reference, import ledger, normalization/dedup review | DONE (2026-09-18) |
-| P11-A3 | Practitioner matching & dataset splitting/building | PENDING |
+| P11-A3 | Practitioner matching & dataset splitting/building | DONE (2026-09-18) |
 | P11-A4 | Export/licensing controls + assignment enforcement in the tenant data path | PENDING |
+
+### P11-A3 — Practitioner Matching & Dataset Splitting/Building (DONE)
+
+- Domain module `dataset-matching.ts` (mirrors `DATA-MODEL.md` §6.6/§6.7):
+  - `PractitionerSourceRecord` model (§6.7) with the `unmatched|candidate|matched|confirmed_unmatched` taxonomy and the **no-silent-merge policy**: `classifyMatchConfidence` only ever *marks* a review candidate — a link to the canonical registry is written exclusively by an explicit review decision, and a decision (`matched` / `confirmed_unmatched`) is terminal (`validateMatchStatusChange`);
+  - deterministic match scoring (no fuzzy heuristics): `scoreMatchEvidence` maps evidence equality (national id, license, phone, name — folded with the P11-A2 Persian normalizers) onto fixed confidence tiers (exact=1, high=0.9, phone+name=0.8, phone=0.6, name=0.5); the clamped `MatchPolicy.candidateMinConfidence` (default 0.6) decides candidate vs no_match;
+  - dataset build lineage (§6.3): `DatasetBuild` derives a target version from a **published**, non-empty source version; `validateBuildReadiness` refuses draft/superseded/empty sources and definitions that select nothing; `executeBuildDefinition` deterministically filters record refs by specialty (records without a specialty never survive a specialty-filtered split).
+- Migration `0007_dataset_matching.sql` (control) — `practitioner_source_records` (taxonomy CHECKs, `UNIQUE (dataset_version_id, source_record_ref)`, a `match_status <> 'matched' OR practitioner_id IS NOT NULL` integrity CHECK, decided-at coherence CHECK, FK links + review indexes) and `dataset_builds` (lineage FKs with RESTRICT, `UNIQUE (target_version_id)`, non-negative record count).
+- Repository `dataset-matching-repository.ts` — `ControlPlaneDatasetMatchingRepository`:
+  - source-record registration (default `unmatched`), filtered/sorted listing and guarded review decisions: `linkMatch` requires a non-empty canonical practitioner id and an undecided record; `confirmUnmatched` is the terminal negative decision; both record the deciding admin + timestamp and never write on rejection;
+  - `createBuild` re-validates readiness **and** the produced record count before writing — an empty target never enters the lineage ledger; `listBuilds` exposes the split/refresh lineage per source version.
+- API `dataset-matching-api.ts` — permission-scoped per PERMISSION-MATRIX §11: record/lineage reads (`datasets.read`), batch registration + review decisions (`datasets.deduplicate`), build creation (`datasets.build`); 400 invalid payload (recordability of the build definition is re-checked at the API boundary), 404 unknown, 409 refused link/decision/build.
+- Competitive basis: IQVIA-style practitioner identity resolution + Veeva Vault-style derived-version lineage (`COMPETITIVE-ANALYSIS.md` §3).
+
+Acceptance: 42 new focused tests (18 domain + 12 repository + 12 API); full suite 99 test files / 716 tests green; typecheck, migrations (control 7 + workspace 10), web+worker builds pass.
 
 ### P11-A2 — Import & Normalization Pipeline (DONE)
 

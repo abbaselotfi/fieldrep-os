@@ -478,3 +478,34 @@ export {
   validateImportStatusChange,
   validateNormalizationCounts,
 } from './dataset-import'
+
+export type {
+  BuildRecordRef,
+  CreateDatasetBuildInput,
+  DatasetBuild,
+  DatasetBuildDefinition,
+  LinkMatchInput,
+  MatchClassification,
+  MatchEvidence,
+  MatchGuardResult,
+  MatchPolicy,
+  PractitionerMatchStatus,
+  PractitionerSourceRecord,
+  RegisterSourceRecordInput,
+} from './dataset-matching'
+export {
+  DEFAULT_MATCH_POLICY,
+  MATCH_CONFIDENCE_EXACT,
+  MATCH_CONFIDENCE_HIGH,
+  MATCH_CONFIDENCE_MEDIUM,
+  MATCH_CONFIDENCE_NAME_ONLY,
+  MATCH_CONFIDENCE_NONE,
+  classifyMatchConfidence,
+  executeBuildDefinition,
+  isMatchDecided,
+  isRecordableBuildDefinition,
+  normalizeMatchPolicy,
+  scoreMatchEvidence,
+  validateBuildReadiness,
+  validateMatchStatusChange,
+} from './dataset-matching'

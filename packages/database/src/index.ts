@@ -110,3 +110,10 @@ export type {
   GuardedImportResult,
 } from './dataset-import-repository'
 export { ControlPlaneDatasetImportRepository } from './dataset-import-repository'
+
+export type {
+  DatasetMatchingRepository,
+  GuardedBuildResult,
+  GuardedMatchResult,
+} from './dataset-matching-repository'
+export { ControlPlaneDatasetMatchingRepository } from './dataset-matching-repository'
