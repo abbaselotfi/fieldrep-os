@@ -534,3 +534,38 @@ export {
   resolveTenantDatasetAccess,
   validateExportStatusChange,
 } from './dataset-licensing'
+
+export type {
+  AbusePolicy,
+  AbuseRisk,
+  AbuseSignalKey,
+  AbuseSignalSnapshot,
+  MfaDecision,
+  MfaPolicy,
+  PrivilegedSessionState,
+  RateLimitDecision,
+  RateLimitPolicy,
+  RateLimitState,
+  RateLimitSurface,
+} from './security-hardening'
+export {
+  DEFAULT_ABUSE_POLICY,
+  DEFAULT_CONTENT_SECURITY_POLICY,
+  DEFAULT_MFA_POLICY,
+  DEFAULT_RATE_LIMIT_POLICY,
+  EMPTY_ABUSE_SNAPSHOT,
+  PRIVILEGED_MFA_PERMISSIONS,
+  RATE_LIMIT_POLICIES,
+  buildSecurityHeaders,
+  classifyAbuseRisk,
+  classifyAbuseTransition,
+  evaluatePrivilegedMfa,
+  evaluateRateLimit,
+  inspectRateLimit,
+  normalizeAbusePolicy,
+  normalizeMfaPolicy,
+  normalizeRateLimitPolicy,
+  rateLimitPolicyFor,
+  recordAbuseSignal,
+  requiresPrivilegedMfa,
+} from './security-hardening'

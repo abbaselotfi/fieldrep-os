@@ -728,6 +728,28 @@ Acceptance: 46 new focused tests (10 domain + 15 repository + 21 API); full suit
 
 Scope: security review, rate limiting, privileged MFA, backup/restore/DR, observability, performance/load tests, abuse controls, retention workflows, full E2E regression and release/runbook process.
 
+### Status
+
+| Step | Description | Status |
+|------|-------------|--------|
+| P12-A1 | Security hardening — deterministic rate limiting & abuse controls, hardened response headers, privileged-role MFA step-up (SECURITY-THREAT-MODEL §9/§28) | DONE (2026-09-18) |
+| P12-A2 | Observability — request correlation, structured event logging, metric counters and health/readiness probes (NFR-005) | PENDING |
+| P12-A3 | Data lifecycle & recovery — retention/legal-hold contracts, backup/restore/DR verification ledger and runbook evidence (§29) | PENDING |
+| P12-A4 | Performance & release readiness — bounded-work budgets, load/regression harness and release runbook | PENDING |
+
+
+### P12-A1 — Security Hardening (DONE)
+
+- Domain module `security-hardening.ts` (mirrors SECURITY-THREAT-MODEL §9/§28):
+  - fixed-window rate limiting (`evaluateRateLimit`/`inspectRateLimit`): deterministic and monotonic — an exhausted window returns the exact `retryAfterMs`, an elapsed window opens cleanly, and a backwards clock never grants extra capacity; per-surface budgets (`RATE_LIMIT_POLICIES`: auth 10/min, export/import 5/min, sync 60/min, generic API 120/min) with a strict normalized fallback;
+  - abuse controls: monotonic signal recording (`authFailures|rejectedRequests|exportRequests`), fail-closed risk classification (`normal|watch|blocked` with a normalized policy) and escalations/deescalations for audit (`classifyAbuseTransition`);
+  - privileged-role MFA step-up: the explicit `PRIVILEGED_MFA_PERMISSIONS` set (tenant/platform management, `support_access.start`, `workspace_data.export`, `datasets.export`), freshness-scoped `evaluatePrivilegedMfa` (`not_required|satisfied|mfa_required|mfa_stale` — never silently accepted; future-dated verifications treated as stale);
+  - deterministic hardened response headers (`buildSecurityHeaders`): HSTS with preload, nosniff, strict referrer policy, locked-down permissions policy, same-origin COOP/CORP, framing denied by default, a `default-src 'self'` CSP that can be suppressed for machine endpoints or extended with explicit frame ancestors.
+- Worker middleware `rate-limit.ts` (`RateLimitStore` interface + `InMemoryRateLimitStore`, caller keying by authenticated user else source address, 429 + `retry-after` + `x-ratelimit-*` on the exact window reset), `security-headers.ts` (stamps every response including denials) and `privileged-mfa.ts` (401 before the MFA check, `mfa_required`/`mfa_stale` for privileged callers, distinct `mfa_setup_required` when the session binding is absent).
+- Competitive basis: Veeva/IQVIA-grade abuse controls with an auditable escalation trail (COMPETITIVE-ANALYSIS.md §3).
+
+Acceptance: 31 new focused tests (20 domain + 11 worker middleware); full suite 105 test files / 796 tests green; typecheck, migrations (control 8 + workspace 10), web+worker builds pass.
+
 ---
 
 ## Engineering gate for every phase
