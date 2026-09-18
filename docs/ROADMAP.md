@@ -733,7 +733,7 @@ Scope: security review, rate limiting, privileged MFA, backup/restore/DR, observ
 | Step | Description | Status |
 |------|-------------|--------|
 | P12-A1 | Security hardening — deterministic rate limiting & abuse controls, hardened response headers, privileged-role MFA step-up (SECURITY-THREAT-MODEL §9/§28) | DONE (2026-09-18) |
-| P12-A2 | Observability — request correlation, structured event logging, metric counters and health/readiness probes (NFR-005) | PENDING |
+| P12-A2 | Observability — request correlation, structured event logging, metric counters and health/readiness probes (NFR-005) | DONE (2026-09-18) |
 | P12-A3 | Data lifecycle & recovery — retention/legal-hold contracts, backup/restore/DR verification ledger and runbook evidence (§29) | PENDING |
 | P12-A4 | Performance & release readiness — bounded-work budgets, load/regression harness and release runbook | PENDING |
 
@@ -749,6 +749,19 @@ Scope: security review, rate limiting, privileged MFA, backup/restore/DR, observ
 - Competitive basis: Veeva/IQVIA-grade abuse controls with an auditable escalation trail (COMPETITIVE-ANALYSIS.md §3).
 
 Acceptance: 31 new focused tests (20 domain + 11 worker middleware); full suite 105 test files / 796 tests green; typecheck, migrations (control 8 + workspace 10), web+worker builds pass.
+
+### P12-A2 — Observability (DONE)
+
+- Domain module `observability.ts` (REQUIREMENTS NFR-005 — diagnosable without exposing sensitive data):
+  - request correlation: `resolveRequestId` forwards a usable caller-supplied id (8–64 chars, `[A-Za-z0-9_-]`), generates a deterministic fallback otherwise, and marks which happened;
+  - structured event logging: `buildLogEvent` normalizes unknown log levels to `info` (a bad level never crashes the pipeline) and scopes to `null`; `sanitizeLogMetadata` recursively redacts sensitive keys (case-insensitive, separator-agnostic, with caller extensions and a fixed depth) so secrets can never leak through structured logs;
+  - SLO evaluation: nearest-rank percentiles over a bounded sample, a normalized budget (p50/p95/p99 + error rate, defaults 300 ms/1.2 s/3 s/1 %) and `evaluateSlo` producing deterministic breach labels — an empty sample is a breach, never "healthy";
+  - health rollups: fail-closed `rollupHealth` (any unhealthy check → unhealthy, a degraded check degrades, an empty check list reports degraded rather than pretending to be healthy) and `isServableHealthState`.
+- Worker middleware `observability.ts`: `requestObservability` gives every request a correlation id (`x-request-id` response header, forwarded when usable), and emits one structured `http.request.completed` event per outcome through a pluggable sink (`InMemoryObservabilitySink` for tests, `ConsoleObservabilitySink` as the deployed default) — handler failures are detected both via the thrown path and Hono's `c.error` and are logged as `uncaught_error`; `emitEvent` is the shared helper for counters/audits.
+- Worker route `health-api.ts`: `/health` is the cheap liveness probe (no dependency calls); `/health/ready` runs the registered readiness checks and fails closed — `unhealthy` is 503, `degraded` is 200 but labeled, an unknown state or an unreadable check payload is treated as unhealthy, never silently served.
+- Known-kind event taxonomy (`WELL_KNOWN_EVENT_KINDS`: http/auth/permission/rate-limit/abuse/MFA/dataset-export/sync/health) keeps dashboard indexing stable across modules.
+
+Acceptance: 21 new focused tests (12 domain + 4 middleware + 5 health API); full suite 108 test files / 817 tests green; typecheck, migrations (control 8 + workspace 10), web+worker builds pass.
 
 ---
 

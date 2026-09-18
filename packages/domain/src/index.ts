@@ -569,3 +569,31 @@ export {
   recordAbuseSignal,
   requiresPrivilegedMfa,
 } from './security-hardening'
+
+export type {
+  HealthCheckResult,
+  HealthRollup,
+  HealthState,
+  LogEvent,
+  LogEventInput,
+  LogLevel,
+  ObservabilityEventKind,
+  RequestCorrelation,
+  SloBudget,
+  SloEvaluation,
+  SloSample,
+} from './observability'
+export {
+  DEFAULT_SLO_BUDGET,
+  LOG_METADATA_REDACTED,
+  WELL_KNOWN_EVENT_KINDS,
+  buildLogEvent,
+  evaluateSlo,
+  isLogLevel,
+  isServableHealthState,
+  normalizeSloBudget,
+  percentile,
+  resolveRequestId,
+  rollupHealth,
+  sanitizeLogMetadata,
+} from './observability'
