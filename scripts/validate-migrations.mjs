@@ -181,6 +181,66 @@ applyMigrations(
           .run(now, now),
       'assignment export flag is a strict boolean',
     )
+
+    // -- P12-A3: data lifecycle & recovery --------------------------------
+    db.prepare(
+      `INSERT INTO company_retention_policies (company_id, purge_after_days, updated_by, updated_at)
+       VALUES ('company-a', 365, 'user-1', ?)`,
+    ).run(now)
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO company_retention_policies (company_id, purge_after_days, updated_by, updated_at)
+             VALUES ('company-b', 10, 'user-1', ?)`,
+          )
+          .run(now),
+      'retention cannot be shorter than 30 days',
+    )
+
+    db.prepare(
+      `INSERT INTO lifecycle_events (id, company_id, workspace_id, action, performed_by, reason, at_ms)
+       VALUES ('lifecycle-1', 'company-a', 'workspace-a', 'suspend', 'user-1', 'contract paused', ?)`,
+    ).run(now)
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO lifecycle_events (id, company_id, workspace_id, action, performed_by, reason, at_ms)
+             VALUES ('lifecycle-bad', 'company-a', 'workspace-a', 'hard_delete', 'user-1', NULL, ?)`,
+          )
+          .run(now),
+      'only governed lifecycle actions are accepted (no casual hard delete)',
+    )
+
+    db.prepare(
+      `INSERT INTO backup_drills (id, scope, target_id, backup_reference, started_at_ms, verified_by)
+       VALUES ('drill-1', 'workspace', 'workspace-a', 'backup://2026-09', ?, 'user-1')`,
+    ).run(now)
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO backup_drills (id, scope, target_id, backup_reference, started_at_ms, result)
+             VALUES ('drill-undecided', 'workspace', 'workspace-a', 'backup://2026-09', ?, 'passed')`,
+          )
+          .run(now),
+      'a decided drill always carries its completion timestamp',
+    )
+
+    expectConstraint(
+      () =>
+        db
+          .prepare(
+            `INSERT INTO backup_drills (id, scope, target_id, backup_reference, started_at_ms, completed_at_ms, result)
+             VALUES ('drill-bad-result', 'workspace', 'workspace-a', 'backup://2026-09', ?, ?, 'partially')`,
+          )
+          .run(now, now),
+      'drill results are limited to passed/failed',
+    )
   },
 )
 

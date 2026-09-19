@@ -125,3 +125,10 @@ export type {
   GuardedExportResult,
 } from './dataset-license-repository'
 export { ControlPlaneDatasetLicenseRepository } from './dataset-license-repository'
+
+export type {
+  DataLifecycleRepository,
+  GuardedDrillResult,
+  RetentionPolicyRowView,
+} from './data-lifecycle-repository'
+export { ControlPlaneDataLifecycleRepository } from './data-lifecycle-repository'

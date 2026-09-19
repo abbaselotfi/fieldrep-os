@@ -597,3 +597,34 @@ export {
   rollupHealth,
   sanitizeLogMetadata,
 } from './observability'
+
+export type {
+  BackupDrillRecord,
+  BackupDrillStatus,
+  BackupScope,
+  CompleteBackupDrillInput,
+  DrillGuardResult,
+  LifecycleAction,
+  LifecycleEvent,
+  LifecycleEventInput,
+  LifecycleGuardResult,
+  LifecycleStatus,
+  LifecycleSubject,
+  RetentionPolicy,
+  StartBackupDrillInput,
+} from './data-lifecycle'
+export {
+  ACTIVE_LIFECYCLE_SUBJECT,
+  DEFAULT_RETENTION_POLICY,
+  applyLifecycleAction,
+  isRecordableLifecycleEvent,
+  isRecoverabilityProven,
+  isRetentionExpired,
+  normalizeRecoveryMinutes,
+  normalizeRetentionPolicy,
+  replayLifecycleSubject,
+  retentionDueAtMs,
+  startBackupDrill,
+  validateDrillCompletion,
+  validateLifecycleAction,
+} from './data-lifecycle'

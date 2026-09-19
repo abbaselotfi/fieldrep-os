@@ -734,7 +734,7 @@ Scope: security review, rate limiting, privileged MFA, backup/restore/DR, observ
 |------|-------------|--------|
 | P12-A1 | Security hardening — deterministic rate limiting & abuse controls, hardened response headers, privileged-role MFA step-up (SECURITY-THREAT-MODEL §9/§28) | DONE (2026-09-18) |
 | P12-A2 | Observability — request correlation, structured event logging, metric counters and health/readiness probes (NFR-005) | DONE (2026-09-18) |
-| P12-A3 | Data lifecycle & recovery — retention/legal-hold contracts, backup/restore/DR verification ledger and runbook evidence (§29) | PENDING |
+| P12-A3 | Data lifecycle & recovery — retention/legal-hold contracts, backup/restore/DR verification ledger and runbook evidence (§29) | DONE (2026-09-18) |
 | P12-A4 | Performance & release readiness — bounded-work budgets, load/regression harness and release runbook | PENDING |
 
 
@@ -762,6 +762,20 @@ Acceptance: 31 new focused tests (20 domain + 11 worker middleware); full suite 
 - Known-kind event taxonomy (`WELL_KNOWN_EVENT_KINDS`: http/auth/permission/rate-limit/abuse/MFA/dataset-export/sync/health) keeps dashboard indexing stable across modules.
 
 Acceptance: 21 new focused tests (12 domain + 4 middleware + 5 health API); full suite 108 test files / 817 tests green; typecheck, migrations (control 8 + workspace 10), web+worker builds pass.
+
+### P12-A3 — Data Lifecycle & Recovery (DONE)
+
+- Domain module `data-lifecycle.ts` (mirrors SECURITY-THREAT-MODEL §29 — suspension, archival, retention expiration, legal hold and final deletion are *separate* concepts, never a casual hard-delete cascade):
+  - `LifecycleSubject` + an explicit action transition table (`suspend/resume/archive/restore/request_purge/complete_purge/place_legal_hold/release_legal_hold`); `validateLifecycleAction` enforces the order of operations — a purge is only requestable on archived data, a legal hold blocks every destructive step (`legal_hold_blocked`), retention must have expired (`retention_not_expired`), and `purged` is terminal;
+  - `normalizeRetentionPolicy` (30-day floor, default 365) with `retentionDueAtMs` / `isRetentionExpired` — a subject that was never archived can never expire;
+  - `replayLifecycleSubject`: the current state is *replayed* from the append-only ledger, so guards evaluate replayed reality instead of a drift-prone status column;
+  - backup/DR ledger: `startBackupDrill` (well-formed drills only, workspace drills need a target), `validateDrillCompletion` (only an undecided drill completes; a *passed* drill **must** carry RPO and RTO — `metrics_required` — while a failed one may close with a note) and `isRecoverabilityProven` (the *latest* decided drill must have passed inside the freshness window; a newer failure never inherits an older pass).
+- Migration `0009_data_lifecycle.sql` (control) — `company_retention_policies` (≥30-day CHECK), `lifecycle_events` (action taxonomy CHECK limited to governed actions, FK RESTRICT to companies / SET NULL to workspaces, ledger index) and `backup_drills` (scope taxonomy, non-negative RPO/RTO CHECKs, and the `(result IS NULL) = (completed_at_ms IS NULL)` integrity CHECK).
+- Repository `data-lifecycle-repository.ts` — `ControlPlaneDataLifecycleRepository`: retention policy up-insert with normalization, append-only lifecycle ledger (non-recordable events are refused **without** a write) and the drill ledger (`startDrill` never writes an invalid drill; `completeDrill` re-guards, never overwrites a decided drill and preserves prior notes/verifier).
+- API `data-lifecycle-api.ts` — permission-scoped per PERMISSION-MATRIX §10: retention/lifecycle reads (`companies.read`), lifecycle + retention mutations (`companies.manage`), drill reads (`security.read`) and drill start/complete (`platform.settings.manage`); lifecycle POST replays the ledger, re-validates the action **before** writing and returns 409 with the deterministic reason (`invalid_state`, `legal_hold_blocked`, `retention_not_expired`); drills expose the `recoverabilityProven` verdict (a restore that cannot state its RPO/RTO proves nothing).
+- Migration validator now exercises the P12-A3 schema at the DB level (sub-30-day retention, an ungoverned `hard_delete` action, a decided drill without a completion timestamp, an out-of-taxonomy drill result).
+
+Acceptance: 40 new focused tests (17 domain + 9 repository + 14 API); full suite 111 test files / 857 tests green; typecheck, migrations (control 9 + workspace 10), web+worker builds pass.
 
 ---
 
