@@ -1,4 +1,5 @@
 import type { AuthContext } from '@fieldrep/domain'
+import { MAX_PAGE_INDEX, WORKLOAD_BUDGETS } from '@fieldrep/domain'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -98,10 +99,76 @@ describe('audit-admin API', () => {
     expect(filters.limit).toBe(10)
   })
 
-  it('rejects a limit above the hard cap', async () => {
-    const app = createAuditAdminApi(dependencies(gateway()))
+  it('clamps a limit above the surface budget instead of trusting it (P12-A4)', async () => {
+    let seen: number | undefined
+    const app = createAuditAdminApi(
+      dependencies(
+        gateway({
+          listAuditEvents: async (filters) => {
+            seen = filters.limit
+            return []
+          },
+        }),
+      ),
+    )
     const response = await app.request('/workspaces/workspace-a/audit-events?limit=9999')
-    expect(response.status).toBe(400)
+    expect(response.status).toBe(200)
+    // Bounded work: the gateway never receives more than the audit budget.
+    expect(seen).toBe(WORKLOAD_BUDGETS.audit.maxPageSize)
+    const body = (await response.json()) as {
+      page: { page: number; pageSize: number; offset: number; clamped: boolean }
+    }
+    expect(body.page).toEqual({ page: 1, pageSize: 200, offset: 0, clamped: true })
+  })
+
+  it('derives an offset from page/pageSize and reports the window', async () => {
+    const app = createAuditAdminApi(dependencies(gateway()))
+    const response = await app.request(
+      '/workspaces/workspace-a/audit-events?page=3&pageSize=25',
+    )
+    const body = (await response.json()) as {
+      page: { page: number; pageSize: number; offset: number; clamped: boolean }
+    }
+    expect(body.page).toEqual({ page: 3, pageSize: 25, offset: 50, clamped: false })
+  })
+
+  it('bounds deep paging so an offset cannot run away', async () => {
+    let seen: number | undefined
+    const app = createAuditAdminApi(
+      dependencies(
+        gateway({
+          listAuditEvents: async (filters) => {
+            seen = filters.limit
+            return []
+          },
+        }),
+      ),
+    )
+    const response = await app.request(
+      '/workspaces/workspace-a/audit-events?page=99999999&pageSize=10',
+    )
+    const body = (await response.json()) as { page: { page: number } }
+    expect(body.page.page).toBe(MAX_PAGE_INDEX)
+    expect(seen).toBe(10)
+  })
+
+  it('degrades a garbage page size to the default window instead of everything', async () => {
+    let seen: number | undefined
+    const app = createAuditAdminApi(
+      dependencies(
+        gateway({
+          listAuditEvents: async (filters) => {
+            seen = filters.limit
+            return []
+          },
+        }),
+      ),
+    )
+    const response = await app.request('/workspaces/workspace-a/audit-events?pageSize=-4')
+    const body = (await response.json()) as { page: { pageSize: number; clamped: boolean } }
+    expect(body.page.pageSize).toBe(50)
+    expect(body.page.clamped).toBe(true)
+    expect(seen).toBe(50)
   })
 
   it('returns audit events with proper permission', async () => {

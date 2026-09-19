@@ -10,7 +10,7 @@
 **P9 status:** COMPLETE — company & workspace administration (org units/features, master data, calendar/targets, audit reporting)
 **P10 status:** COMPLETE — platform administration (companies/workspaces/limits, audit center, data routes, analytics/support access, settings/entitlements)  
 **P11 status:** COMPLETE — dataset catalog/vault/allocation (catalog foundation, import & normalization, practitioner matching & dataset building, export/licensing controls + tenant data-path enforcement)
-**Current work item:** P12 — production hardening & scale
+**P12 status:** COMPLETE — production hardening & scale (security hardening, observability, data lifecycle & recovery, performance & release readiness)
 
 ## Product priority
 
@@ -735,7 +735,7 @@ Scope: security review, rate limiting, privileged MFA, backup/restore/DR, observ
 | P12-A1 | Security hardening — deterministic rate limiting & abuse controls, hardened response headers, privileged-role MFA step-up (SECURITY-THREAT-MODEL §9/§28) | DONE (2026-09-18) |
 | P12-A2 | Observability — request correlation, structured event logging, metric counters and health/readiness probes (NFR-005) | DONE (2026-09-18) |
 | P12-A3 | Data lifecycle & recovery — retention/legal-hold contracts, backup/restore/DR verification ledger and runbook evidence (§29) | DONE (2026-09-18) |
-| P12-A4 | Performance & release readiness — bounded-work budgets, load/regression harness and release runbook | PENDING |
+| P12-A4 | Performance & release readiness — bounded-work budgets, load/regression harness and release runbook | DONE (2026-09-18) |
 
 
 ### P12-A1 — Security Hardening (DONE)
@@ -776,6 +776,21 @@ Acceptance: 21 new focused tests (12 domain + 4 middleware + 5 health API); full
 - Migration validator now exercises the P12-A3 schema at the DB level (sub-30-day retention, an ungoverned `hard_delete` action, a decided drill without a completion timestamp, an out-of-taxonomy drill result).
 
 Acceptance: 40 new focused tests (17 domain + 9 repository + 14 API); full suite 111 test files / 857 tests green; typecheck, migrations (control 9 + workspace 10), web+worker builds pass.
+
+### P12-A4 — Performance & Release Readiness (DONE)
+
+- Domain module `workload-budget.ts` (SECURITY-THREAT-MODEL §28 mitigation "bounded pagination/quotas" made explicit):
+  - per-surface `WORKLOAD_BUDGETS` (audit tightest for interactive reads, sync widest for device batches) with a normalized fail-closed fallback;
+  - `resolvePageWindow`: deterministic fail-closed pagination — absent values are plain defaults (not a clamp), present-but-garbage values degrade *and* report `clamped`, oversized page sizes are capped to the budget, and the page index is bounded (`MAX_PAGE_INDEX`) so a deep offset cannot force an unbounded scan (offset returned alongside data so clients never guess);
+  - `validateBatchSize` for batch/export ceilings; `normalizeLoadProfile` + `evaluateLoadRun` (SLO evaluation plus the 90 % sample-coverage rule — a run that barely ran proves nothing);
+  - `evaluateReleaseReadiness`: every *required* check must have passed — a failure is a blocker, a skip is missing evidence, and both keep the verdict `blocked`; blank evidence is never a pass.
+- Bounded work enforced in a live API: workspace audit reads and the audit summary now take their ceilings from the audit surface budget via `resolvePageWindow` (oversized `limit`/`pageSize` are clamped, garbage degrades to the default window, deep pages are bounded) and return the resolved `page` window next to the data.
+- Evidence harness: `scripts/validate-release-readiness.mjs` (`pnpm validate:release`, now part of `pnpm check`) — re-runs the migration validator, refuses `.only`/`.skip` test foci, asserts no P11/P12 step is pending and requires the runbook/performance/security/data-model evidence files; exits non-zero on blockers or missing evidence.
+- Process docs: `docs/PERFORMANCE-BUDGETS.md` (per-surface ceilings, page-window rules, SLO budgets, load profiles, regression expectations — timing-based tests avoided in favour of deterministic gateway-receive assertions) and `docs/RELEASE-RUNBOOK.md` (ordered release gates, pre-release checklist, deployment/rollback procedures, backup/restore/DR drill cadence with RPO/RTO evidence, §29 lifecycle order, incident severities and post-release verification).
+
+Acceptance: 35 new focused tests (16 domain + 19 bounded-work regression on the audit API surface); full suite 112 test files / 876 tests green; typecheck, migrations (control 9 + workspace 10), web+worker builds pass; the release-readiness probe was observed `BLOCKED` before the A4 close and `READY` after.
+
+**P12 status: COMPLETE** — security hardening (A1), observability (A2), data lifecycle & recovery (A3), performance & release readiness (A4).
 
 ---
 

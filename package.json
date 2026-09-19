@@ -10,6 +10,7 @@
     "dev:web": "pnpm --filter @fieldrep/web dev",
     "dev:worker": "pnpm --filter @fieldrep/worker dev",
     "validate:migrations": "node scripts/validate-migrations.mjs",
+    "validate:release": "node scripts/validate-release-readiness.mjs",
     "validate:pwa": "node scripts/validate-pwa.mjs",
     "validate:p3-calendar": "node scripts/validate-p3-calendar.mjs && vitest run packages/domain/src/calendar-activity.test.ts packages/domain/src/working-calendar.test.ts packages/domain/src/planner-engine.test.ts packages/database/src/calendar-repository.test.ts apps/worker/src/routes/calendar-api.test.ts apps/web/src/features/calendar/preview-calendar.test.ts",
     "validate:p4-offline": "node scripts/validate-p4-offline.mjs && vitest run apps/web/src/offline/",
@@ -18,7 +19,7 @@
     "typecheck": "tsc -p packages/domain/tsconfig.json --noEmit && tsc -p packages/shared/tsconfig.json --noEmit && tsc -p packages/permissions/tsconfig.json --noEmit && tsc -p packages/database/tsconfig.json --noEmit && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit && tsc -p apps/worker/tsconfig.json --noEmit",
     "test": "vitest run",
     "build": "pnpm --filter @fieldrep/web build && pnpm --filter @fieldrep/worker build",
-    "check": "pnpm validate:migrations && pnpm validate:pwa && pnpm validate:p2-parity && pnpm validate:p3-calendar && pnpm validate:p4-offline && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm validate:migrations && pnpm validate:pwa && pnpm validate:p2-parity && pnpm validate:p3-calendar && pnpm validate:p4-offline && pnpm typecheck && pnpm test && pnpm build && pnpm validate:release"
   },
   "devDependencies": {
     "@types/node": "26.4.1",

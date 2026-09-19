@@ -4,7 +4,7 @@ import type {
   AuditEventFilter,
   WorkspaceId,
 } from '@fieldrep/domain'
-import { buildAuditActionSummary } from '@fieldrep/domain'
+import { WORKLOAD_BUDGETS, buildAuditActionSummary, resolvePageWindow } from '@fieldrep/domain'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
@@ -24,6 +24,11 @@ import {
  * Cross-workspace access is rejected before any repository resolution.
  */
 
+/**
+ * Page-window budget (P12-A4): the `limit`/`pageSize` ceiling is re-derived by
+ * the domain guard, so an oversized request is clamped to the surface budget
+ * rather than trusted — bounded work per request (§28).
+ */
 const auditQuerySchema = z.object({
   actorUserId: z.string().min(1).optional(),
   entityType: z.string().min(1).optional(),
@@ -31,7 +36,9 @@ const auditQuerySchema = z.object({
   actionKey: z.string().min(1).optional(),
   fromMs: z.coerce.number().int().min(0).optional(),
   toMs: z.coerce.number().int().min(0).optional(),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  page: z.coerce.number().int().optional(),
+  pageSize: z.coerce.number().int().optional(),
+  limit: z.coerce.number().int().optional(),
 })
 
 export interface AuditAdminDependencies {
@@ -55,7 +62,15 @@ export function createAuditAdminApi(dependencies: AuditAdminDependencies) {
       const parsed = auditQuerySchema.safeParse(c.req.query())
       if (!parsed.success) return c.json({ error: 'invalid_audit_filter' }, 400)
 
-      const filters: AuditEventFilter = { limit: parsed.data.limit }
+      const window = resolvePageWindow(
+        {
+          page: parsed.data.page ?? null,
+          pageSize: parsed.data.pageSize ?? parsed.data.limit ?? null,
+        },
+        WORKLOAD_BUDGETS.audit,
+      )
+
+      const filters: AuditEventFilter = { limit: window.pageSize }
       if (parsed.data.actorUserId !== undefined) filters.actorUserId = parsed.data.actorUserId
       if (parsed.data.entityType !== undefined) filters.entityType = parsed.data.entityType
       if (parsed.data.entityId !== undefined) filters.entityId = parsed.data.entityId
@@ -65,7 +80,7 @@ export function createAuditAdminApi(dependencies: AuditAdminDependencies) {
 
       const gateway = await dependencies.auditForWorkspace(c.req.param('workspaceId'))
       const events = await gateway.listAuditEvents(filters)
-      return c.json({ events })
+      return c.json({ events, page: window })
     },
   )
 
@@ -74,11 +89,12 @@ export function createAuditAdminApi(dependencies: AuditAdminDependencies) {
     requireWorkspacePermission('reports.read.workspace'),
     async (c) => {
       const parsed = auditQuerySchema
-        .omit({ limit: true })
+        .omit({ limit: true, page: true, pageSize: true })
         .safeParse(c.req.query())
       if (!parsed.success) return c.json({ error: 'invalid_audit_filter' }, 400)
 
-      const filters: AuditEventFilter = { limit: 200 }
+      // The summary is a bounded projection: never more than the surface budget.
+      const filters: AuditEventFilter = { limit: WORKLOAD_BUDGETS.audit.maxPageSize }
       if (parsed.data.actorUserId !== undefined) filters.actorUserId = parsed.data.actorUserId
       if (parsed.data.entityType !== undefined) filters.entityType = parsed.data.entityType
       if (parsed.data.actionKey !== undefined) filters.actionKey = parsed.data.actionKey

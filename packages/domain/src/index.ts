@@ -628,3 +628,30 @@ export {
   validateDrillCompletion,
   validateLifecycleAction,
 } from './data-lifecycle'
+
+export type {
+  BatchGuardResult,
+  LoadProfile,
+  LoadRunEvaluation,
+  PageRequest,
+  PageWindow,
+  ReleaseCheck,
+  ReleaseCheckStatus,
+  ReleaseReadiness,
+  WorkloadBudget,
+  WorkloadSurface,
+} from './workload-budget'
+export {
+  DEFAULT_LOAD_PROFILE,
+  DEFAULT_WORKLOAD_BUDGET,
+  MAX_PAGE_INDEX,
+  MIN_SAMPLE_COVERAGE,
+  WORKLOAD_BUDGETS,
+  evaluateLoadRun,
+  evaluateReleaseReadiness,
+  normalizeLoadProfile,
+  normalizeWorkloadBudget,
+  resolvePageWindow,
+  validateBatchSize,
+  workloadBudgetFor,
+} from './workload-budget'
