@@ -48,6 +48,7 @@ describe('offline local database foundation', () => {
     expect(partitionDbName({ userId: 'u2', workspaceId: 'w1' })).not.toBe(name)
   })
 
+  // P4-A5 scenario 4: logout isolation — another partition never sees cached data.
   it('isolates cache data between user/workspace partitions', async () => {
     const userA = await openTestDb(testPartition('a'))
     const userB = await openTestDb(testPartition('b'))
@@ -92,6 +93,7 @@ describe('offline local database foundation', () => {
     expect(await db.cache.count('customers')).toBe(0)
   })
 
+  // P4-A5 scenario 6: a PWA update must not destroy pending (unsynced) work.
   it('preserves pending queue operations on reopen (PWA update safety)', async () => {
     const partition = testPartition()
     const first = await openTestDb(partition)
@@ -132,6 +134,7 @@ describe('offline local database foundation', () => {
     expect(await reopened.cache.get('customers', 'doctor-1')).toMatchObject({ entityId: 'doctor-1' })
   })
 
+  // P4-A5 scenario 4: wiping local data is explicit (logout/prune), never implicit.
   it('supports explicit clearAll for logout/prune (never automatic)', async () => {
     const partition = testPartition()
     const db = await openTestDb(partition)

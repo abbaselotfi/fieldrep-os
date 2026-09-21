@@ -195,6 +195,7 @@ describe('sync API', () => {
     expect(status).toBe(401)
   })
 
+  // P4-A5 scenario 5: server authorization always wins over stale client state.
   it('requires sync.push.own permission', async () => {
     const app = createSyncApi(deps(repositories(), authContext({ permissions: [] })))
     const { status } = await push(app, [planOperation])
@@ -211,6 +212,7 @@ describe('sync API', () => {
     expect(response.status).toBe(400)
   })
 
+  // P4-A5 scenario 1: a plan created offline reaches the server exactly once.
   it('applies a plan_entry create and records it in the idempotency ledger', async () => {
     const app = createSyncApi(deps(repositories()))
     const { status, body } = await push(app, [planOperation])
@@ -220,6 +222,7 @@ describe('sync API', () => {
     expect(body.results![0]).toMatchObject({ result: 'applied', deduplicated: false })
   })
 
+  // P4-A5 scenario 1: the retry replays the stored result (never a second plan).
   it('replays the stored result for a duplicate operationId (idempotent retry)', async () => {
     const app = createSyncApi(deps(repositories()))
 
@@ -230,6 +233,7 @@ describe('sync API', () => {
     expect(second.body.results![0]).toMatchObject({ result: 'applied', deduplicated: true })
   })
 
+  // P4-A5 tenant-binding: another tenant's workspace can never replay user A's operation.
   it('rejects a known operationId claimed by a different tenant', async () => {
     const repo = repositories()
     const app = createSyncApi(deps(repo))
@@ -335,5 +339,139 @@ describe('sync API', () => {
     expect(receivedFromDate).toBe('2000-01-01')
     const body = (await response.json()) as { datasets?: Record<string, { count: number }> }
     expect(body.datasets?.plans?.count).toBe(1)
+  })
+
+  // P4-A5 scenario 2: record a visit offline, the response is lost, the client
+  // retries the same operationId → exactly one server visit is created.
+  it('creates exactly one visit when an offline visit push is retried after a lost response', async () => {
+    let createCalls = 0
+    const repo = repositories({
+      visits: visitRepository({
+        createCompletedVisit: async (input) => {
+          createCalls += 1
+          return {
+            id: input.id ?? 'visit-1',
+            workspaceId: 'workspace-a',
+            ownerUserId: 'user-1',
+            customerId: input.customerId,
+            ...(input.planEntryId === undefined ? {} : { planEntryId: input.planEntryId }),
+            visitDate: input.visitDate,
+            occurredAt: input.occurredAt,
+            status: 'completed',
+            source: 'planned',
+            productCalls: [...input.productCalls],
+          }
+        },
+      }),
+    })
+    const app = createSyncApi(deps(repo))
+
+    const visitOperation = {
+      operationId: '0000000000004visit',
+      entityType: 'visit' as const,
+      entityId: 'visit-1',
+      operationType: 'create' as const,
+      clientOccurredAt: 1_700_000_000_000,
+      payload: {
+        id: 'visit-1',
+        customerId: 'doctor-1',
+        planEntryId: 'plan-1',
+        visitDate: '2026-09-05',
+        occurredAt: 1_700_000_000_000,
+        productCalls: [{ productId: 'product-1', callCount: 2 }],
+      },
+    }
+
+    const first = await push(app, [visitOperation])
+    expect(first.status).toBe(200)
+    expect(first.body.results![0]).toMatchObject({ result: 'applied', deduplicated: false })
+
+    // Lost response: the client retries the very same operation.
+    const retry = await push(app, [visitOperation])
+    expect(retry.body.results![0]).toMatchObject({ result: 'applied', deduplicated: true })
+    expect(createCalls).toBe(1)
+  })
+
+  // P4-A5 scenario 2 (server view): the recorded idempotency result is the
+  // authoritative server visit, so a replayed operation cannot double-count.
+  it('records the authoritative server visit in the idempotency ledger', async () => {
+    const app = createSyncApi(deps(repositories()))
+    await push(app, [
+      {
+        operationId: '0000000000005visit',
+        entityType: 'visit' as const,
+        entityId: 'visit-1',
+        operationType: 'create' as const,
+        payload: {
+          id: 'visit-1',
+          customerId: 'doctor-1',
+          visitDate: '2026-09-05',
+          occurredAt: 1_700_000_000_000,
+        },
+      },
+    ])
+
+    const replayed = await push(app, [
+      {
+        operationId: '0000000000005visit',
+        entityType: 'visit' as const,
+        entityId: 'visit-1',
+        operationType: 'create' as const,
+        payload: { customerId: 'doctor-1', visitDate: '2026-09-05', occurredAt: 1 },
+      },
+    ])
+
+    expect(replayed.body.results![0]).toMatchObject({ result: 'applied', deduplicated: true })
+    expect((replayed.body.results![0] as { serverState?: { status?: string } }).serverState?.status).toBe(
+      'completed',
+    )
+  })
+
+  // P4-A5 scenario 8: achievement/visited totals are derived server-side from
+  // authoritative visits — a client-supplied total never becomes the truth.
+  it('ignores client-supplied derived totals and keeps server-authoritative visits', async () => {
+    const serverVisit = {
+      id: 'visit-1',
+      workspaceId: 'workspace-a',
+      ownerUserId: 'user-1',
+      customerId: 'doctor-1',
+      visitDate: '2026-09-05',
+      occurredAt: 1_700_000_000_000,
+      status: 'completed' as const,
+      source: 'planned' as const,
+      productCalls: [],
+    }
+    const repo = repositories({
+      visits: visitRepository({ listVisits: async () => [serverVisit] }),
+    })
+    const app = createSyncApi(deps(repo))
+
+    const applied = await push(app, [
+      {
+        operationId: '0000000000006visit',
+        entityType: 'visit' as const,
+        entityId: 'visit-1',
+        operationType: 'create' as const,
+        payload: {
+          id: 'visit-1',
+          customerId: 'doctor-1',
+          visitDate: '2026-09-05',
+          occurredAt: 1_700_000_000_000,
+          // A stale local total must never be accepted as achievement truth.
+          visitedCount: 99,
+          achievement: 42,
+        },
+      },
+    ])
+    expect(applied.body.results![0]).toMatchObject({ result: 'applied' })
+
+    const pulled = await app.request('/workspaces/workspace-a/sync/changes?datasets=visits')
+    const body = (await pulled.json()) as {
+      datasets?: Record<string, { count: number; records?: Array<{ entityId: string }> }>
+    }
+    expect(body.datasets?.visits?.count).toBe(1)
+    expect(body.datasets?.visits?.records?.[0]?.entityId).toBe('visit-1')
+    // No client total is echoed back as server state.
+    expect(JSON.stringify(body)).not.toContain('"visitedCount"')
   })
 })

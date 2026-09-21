@@ -92,6 +92,8 @@ describe('OfflineSyncService', () => {
     expect(pending[0]!.operationId).toBe(newest.operationId)
     expect(await db.db.queue.count('superseded')).toBe(1)
   })
+// P4-A5 scenario 3: two clients editing the same plan produce a conflict
+// (base-version mismatch), never a silent last-write-wins.
 it('detects a conflict when two clients edit the same plan', async () => {
     const db = await createTestDatabase(partitionA())
     const { service } = makeService(db)
@@ -170,6 +172,7 @@ it('detects a conflict when two clients edit the same plan', async () => {
     expect(await db.db.queue.list()).toEqual([])
   })
 
+  // P4-A5 scenario 5: revocation/rejection while offline surfaces as a failed operation.
   it('marks an operation failed when server authorization rejects it', async () => {
     const db = await createTestDatabase(partitionA())
     const { service } = makeService(db)
@@ -266,6 +269,7 @@ it('retries transient failures with exponential backoff and skips not-due ops', 
     expect(await db.db.cache.get('customers', 'doctor-1')).toMatchObject({ entityId: 'doctor-1' })
   })
 
+  // P4-A5 scenario 7: offline location evidence keeps its original capture time.
   it('keeps captured offline evidence timestamps inside the payload', async () => {
     const db = await createTestDatabase(partitionA())
     const { service } = makeService(db)

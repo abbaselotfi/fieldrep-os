@@ -5,7 +5,7 @@
 **P1 status:** COMPLETE — authenticated Field User shell/test-security gate passed  
 **P2 status:** COMPLETE — real XLSM compatibility + Excel-parity regression gate passed  
 **P3 status:** COMPLETE — operational calendar domain/APIs/UI + conflict-engine gate passed  
-**P4 status:** P4-A1 COMPLETE — offline PWA foundation (IndexedDB workspace cache)
+**P4 status:** COMPLETE — offline PWA & synchronization (IndexedDB cache/queue, authorized idempotent sync, offline capture with conflict handling, incremental pull)
 **P8 status:** COMPLETE — supervisor workspace (team rollup + member drill-down + scoped export)
 **P9 status:** COMPLETE — company & workspace administration (org units/features, master data, calendar/targets, audit reporting)
 **P10 status:** COMPLETE — platform administration (companies/workspaces/limits, audit center, data routes, analytics/support access, settings/entitlements)  
@@ -20,14 +20,14 @@ The first production-critical surface is the **Field User Workspace**. The legac
 authenticated field user
 → Excel parity                         COMPLETE
 → operational calendar                COMPLETE
-→ offline PWA foundation               NEXT / P4-A1 DONE
-→ offline sync + server idempotency    NEXT / P4
-→ maps/location
-→ visit verification
-→ AI-assisted planning
-→ supervisor
-→ company admin
-→ platform admin/data catalog
+→ offline PWA foundation               COMPLETE
+→ offline sync + server idempotency    COMPLETE
+→ maps/location                        COMPLETE
+→ visit verification                   COMPLETE
+→ AI-assisted planning                 COMPLETE
+→ supervisor                           COMPLETE
+→ company admin                        COMPLETE
+→ platform admin/data catalog          COMPLETE
 ```
 
 ---
@@ -279,10 +279,10 @@ Goal: let a field user keep working during poor connectivity without silent data
 
 ```text
 P4-A1  Offline PWA foundation (IndexedDB cache/sync-queue)      DONE
-P4-A2  Authorized offline cache wiring + idempotent sync APIs   NEXT
-P4-A3  Offline plan/visit capture + retry/conflict UI           PENDING
-P4-A4  Server version/conflict detection + reconciliation       PENDING
-P4-A5  P4 test/security gate (offline scenarios 1–8)            PENDING
+P4-A2  Authorized offline cache wiring + idempotent sync APIs   DONE
+P4-A3  Offline plan/visit capture + retry/conflict UI           DONE
+P4-A4  Server version/conflict detection + reconciliation       DONE
+P4-A5  P4 test/security gate (offline scenarios 1–8)            DONE
 ```
 
 Scope: IndexedDB, authorized offline customer/plan cache, offline plan/report capture, sync queue, retry/conflict states, and strict user/workspace local-data isolation.
@@ -306,6 +306,34 @@ Full suite gate                       PASS (pnpm check)
 ```
 
 Primary acceptance sources: `OFFLINE-SYNC-SPEC.md`, `COMPETITIVE-ANALYSIS.md` §5 (OCE sync-queue/checkpoint model).
+
+### P4-A2 — Authorized Idempotent Sync (DONE)
+
+- Worker route `sync-api.ts`: `POST /workspaces/:workspaceId/sync/operations` applies offline mutations and `GET /workspaces/:workspaceId/sync/changes` serves authorized snapshot datasets for the partitioned device cache. Both are fail-closed: `sync.push.own` / `sync.pull.own` are required per PERMISSION-MATRIX, and the workspace is asserted before any repository resolution.
+- Server-side idempotency (SPEC §7): migration `workspace/0008_sync_operations.sql` is the ledger (`operation_id` primary key, workspace/user bound, `json_valid(result_json)`), `WorkspaceSyncRepository` inserts with `ON CONFLICT(operation_id) DO NOTHING` and replays the stored result via `getRecorded`; a replayed `operationId` claimed by another workspace/user is rejected with `operation_binding_mismatch` instead of being answered from cache.
+- Entities applied in this phase: `plan_entry` (create/update/delete), `visit` (create), `leave_request` and `business_trip` (create/transition) — each mapped to stable rejection codes (`outside_planning_cycle`, `duplicate_same_day`, `plan_already_completed`, `overlapping_leave`, …).
+- Client transport `apps/web/src/offline/http-sync.ts`: `HttpSyncTransport` (push) and `createSyncPullProvider` (pull) plug into the P4-A1 `OfflineSyncService` through its `SyncTransport`/`SyncPullProvider` seams, so the queue never depends on Service Worker lifecycle.
+
+### P4-A3 — Authorized Reference Hydration (DONE)
+
+- Field-user reference data hydrates into the partitioned IndexedDB cache from authorized endpoints: customers (assignment-scoped), products and calendar activities (workspace/user/selected-user visibility filtering applied server-side), via `hydrateCacheFromSnapshot` / `hydrateReferenceData`.
+- Network failure propagates as a typed error so the UI can surface the offline state instead of silently serving stale or partial data; dataset lists are explicit (a custom dataset list never touches reference datasets).
+
+### P4-A4 — Incremental Pull & Conflict Reconciliation (DONE)
+
+- Cursor semantics (SPEC §14): pull accepts an opaque `cursor`, passes it to cursor-aware repository methods as `fromDate`, and returns `serverTime`; the client stores `nextCursor` per dataset so the next pull is a true delta. Without a cursor the API returns the full snapshot (WIDE_FROM baseline) so a fresh device can bootstrap.
+- Conflicts are modeled end-to-end (`SyncConflict` with `keep_server | retry_with_update | discard_local`): base-version mismatch surfaces as `base_version_conflict`, and `retry_with_update` adopts the server version before resending. Derived totals (visited/achievement) are never merged locally — they are read back from server visits.
+
+### P4-A5 — Offline Test/Security Gate (DONE)
+
+- Gate `scripts/validate-p4-sync-gate.mjs` (`pnpm validate:p4-sync`, part of `pnpm check`) fails closed on two levels:
+  - **12 static security invariants** — push/pull authorization, tenant binding on replayed operation ids, conflict modeling, the `ON CONFLICT(operation_id) DO NOTHING` ledger, workspace-scoped ledger reads, user-scoped listing, versioned local namespace, no implicit local wipe (`LocalSchemaMismatchError`), no `deleteObjectStore`, sync engine outside the Service Worker, explicit conflict resolutions;
+  - **scenario coverage map** — each of the eight OFFLINE-SYNC-SPEC §25 scenarios must carry an explicit `P4-A5 scenario N` marker in its owning suite, so a scenario can never be silently dropped; the gate then runs the five offline/sync suites.
+- Scenario evidence: (1) offline plan → one server entry, (2) visit retried after a lost response → one server visit (asserts the repository is called exactly once), (3) same plan edited on two clients → conflict, (4) logout isolation between user partitions, (5) revoked/absent authorization → push refused/rejected, (6) PWA update with pending operations → work survives, (7) offline location evidence keeps its capture time, (8) derived totals reconcile with server-authoritative visits.
+
+Acceptance: 3 new P4-A5 tests (visit lost-response idempotency, authoritative ledger result, client totals never echoed) plus scenario markers across the offline/sync suites; full suite 112 test files / 879 tests green; the P4-A5 gate observed `FAIL` while scenario 4 was double-claimed and `PASS` after the marker was corrected; typecheck, migrations (control 9 + workspace 10), web+worker builds pass.
+
+**P4 status: COMPLETE** — offline foundation (A1), authorized idempotent sync (A2), reference hydration (A3), incremental pull & conflict reconciliation (A4), offline test/security gate (A5).
 
 ---
 
